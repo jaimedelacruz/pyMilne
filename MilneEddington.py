@@ -310,7 +310,7 @@ class MilneEddington:
 
                 for kk in range(9):
                     error[yy,xx,kk] /= Hdiag[kk]
-                    print(Hdiag[kk])
+
         error *= 2.0 / 9.0
         
         return np.sqrt(error)
