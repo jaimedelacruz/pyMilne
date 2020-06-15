@@ -62,6 +62,21 @@ if __name__ == "__main__":
     # invert
     #
     model_out, syn_out, chi2 = me.invert(guessed_initial, syn, sig, nRandom = 5, nIter=20, chi2_thres=1.0, verbose=False)
+
+
+    
+    #
+    # Estimate uncertainties of the results
+    #
+    errors = me.estimate_uncertainties(model_out, syn, sig, mu=1.0)
+    
+
+    #
+    # Print obtained parameters and compare with the original ones
+    #
+    print('Real parameters -----> Inverted values +/- uncertainty')
+    for ii in range(9):
+        print('{0:13.5f} -----> {1:13.5f} +/- {2:8.5f}'.format(m_in[ii], model_out[0,0,ii], errors[0,0,ii]))
     
     
     #

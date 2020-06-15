@@ -275,3 +275,42 @@ class MilneEddington:
             res[:,:,ii] = m[ii]
             
         return res
+
+    def estimate_uncertainties(self, model, obs, sig, mu=1.0):
+        """
+        estimates uncertainties based on the quality of the fit
+        and the parameters sensitivity.
+
+        Model: output model from the inversion [ny, nx, 9]
+        Obs  : Observed profiles [ny, nx, 4, nwav]
+        sig  : Noise estimate 1D or 2D [4,nwav]
+
+        returns the uncertainty estimate per parameter per pixel [ny, nx, 9]
+        """
+
+        
+        syn, J = self.synthesize_rf(model, mu=mu)
+
+        #
+        # Use del Toro Iniesta (2003)
+        #
+
+        error = model*0
+        ny, nx = error.shape[0:2]
+        
+        for yy in range(ny):
+            for xx in range(nx):
+                
+                for kk in range(9):
+                    J[yy,xx,kk] /= sig
+        
+
+                Hdiag = (J[yy,xx,:]**2).sum(axis=(1,2))
+                error[yy,xx,:] = (((obs[yy,xx]-syn[yy,xx]) / sig )**2).sum()
+
+                for kk in range(9):
+                    error[yy,xx,kk] /= Hdiag[kk]
+                    print(Hdiag[kk])
+        error *= 2.0 / 9.0
+        
+        return np.sqrt(error)
