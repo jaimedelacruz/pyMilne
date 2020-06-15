@@ -256,3 +256,22 @@ class MilneEddington:
         for ii in range(9):
             res[:,:,ii] = iPar[ii]
         return res
+
+    def repeat_model(self, m_in, ny, nx):
+        """
+        This routine repeats a 1D model over an entire FOV with dimensions ny, nx pixels
+        m_in must have 9 elements
+        """
+        
+        res = np.zeros((ny, nx, 9), dtype = 'float64', order='c')
+        m = m_in.squeeze()
+        
+        nPar = m.shape[0]
+        if(nPar != 9):
+            print("MilneEddington::repeat_model: Error, input model must have 9 elements!")
+            return None
+
+        for ii in range(9):
+            res[:,:,ii] = m[ii]
+            
+        return res
