@@ -43,7 +43,7 @@ sysconfig.get_config_vars()['PY_LDFLAGS'] = ''
 
 
 
-comp_flags=['-O3','-std=c++14','-march=native','-fPIC','-fopenmp', '-fopt-info-vec']#,
+comp_flags=['-O3','-std=c++14','-march=native','-fPIC','-fopenmp', '-I./src']#,
 extension = Extension("pyMilne",
                       sources=["pyMilne.pyx"], 
                       include_dirs=["./", root_dir+"/include/",numpy.get_include()],
