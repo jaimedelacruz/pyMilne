@@ -18,7 +18,8 @@ if __name__ == "__main__":
     # regions = [[np.arange(201, dtype='float64')*0.01 + 6301.0, psf]]
     
     me = MilneEddington.MilneEddington(regions, lines, nthreads=2)
-    [[np.arange(201, dtype='float64')*0.01 + 6301.0, None]]
+
+
     
     #
     # First example, let's create a model and synthesize the spectra
