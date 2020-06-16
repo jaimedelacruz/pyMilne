@@ -52,6 +52,11 @@ if __name__ == "__main__":
     sig = np.zeros((4, me.get_wavelength_array().size), dtype='float64', order='c')
     sig += noise_level
 
+    # We can artificially increase the weight of Q,U and V by lowering their noise estimate
+    sig[1:3] /= 7.
+    sig[3]   /= 3.
+     
+    
     #
     # provide initial model with different parameters than the ones used in the synthesis
     #
