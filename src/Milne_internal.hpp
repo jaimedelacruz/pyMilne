@@ -76,8 +76,8 @@ namespace ml{
       for(int kk=0; kk<nComp; ++kk){
 	
 	int const iL = iLine.iL[kk];
-	T const vb   = - iLine.splitting[kk] * B; // Negative because we work in lambda
-	T const str  = iLine.strength[kk];
+	T const vb   =  -iLine.splitting[kk] * B; // Negative because we work in lambda
+	T const str  =   iLine.strength[kk];
 	
 	// --- Compute profile of this component --- //
 	
@@ -159,16 +159,16 @@ namespace ml{
       T const GP2 = kq[ww]*fq[ww] + ku[ww]*fu[ww] + kv[ww]*fv[ww];
        
       T const del   = ki2 * GP1 - GP2*GP2;
-      T const S1mud = -S1 * (mu / del);
+      T const S1mud = S1 * (mu / del);
 
       T const GP4 = ki2 * kq[ww] + ki[ww] * (kv[ww]*fu[ww] - ku[ww]*fv[ww]);
       T const GP5 = ki2 * ku[ww] + ki[ww] * (kq[ww]*fv[ww] - kv[ww]*fq[ww]);
       T const GP6 = ki2 * kv[ww] + ki[ww] * (ku[ww]*fq[ww] - kq[ww]*fu[ww]);
 
-      I[ww] = S0 + (-S1mud * ki[ww] * GP3);
-      Q[ww] = S1mud * (GP4 + fq[ww] * GP2);
-      U[ww] = S1mud * (GP5 + fu[ww] * GP2);
-      V[ww] = S1mud * (GP6 + fv[ww] * GP2);
+      I[ww] = S0 + (S1mud * ki[ww] * GP3);
+      Q[ww] = -S1mud * (GP4 + fq[ww] * GP2);
+      U[ww] = -S1mud * (GP5 + fu[ww] * GP2);
+      V[ww] = -S1mud * (GP6 + fv[ww] * GP2);
       
     } // ww
   }
@@ -322,8 +322,8 @@ namespace ml{
       for(int kk=0; kk<nComp; ++kk){
 	
 	int const iL = iLine.iL[kk];
-	T const vb   = - iLine.splitting[kk] * B; // Negative because we work in lambda
-	T const dvB  = - iLine.splitting[kk] / vD;
+	T const vb   = -iLine.splitting[kk] * B; // Negative because we work in lambda
+	T const dvB  = -iLine.splitting[kk] / vD;
 	T const str  = iLine.strength[kk];
 	T const strnpi = str / phyc::SQPI;
 	
@@ -594,7 +594,7 @@ namespace ml{
   
   /* --- dI / dpar --- */
   
-  rf0 = -S1mud * ((dki*GP3+ki*dgp3)*del - ddt*ki*GP3);
+  rf0 = S1mud * ((dki*GP3+ki*dgp3)*del - ddt*ki*GP3);
   
   const T dgp4 = dki*(2*ki*kq + kv*fu - ku*fv) + ki2*dkq +
     ki*(fu*dkv+kv*dfu-fv*dku-ku*dfv);
@@ -602,7 +602,7 @@ namespace ml{
       
   /* --- dQ / dpar --- */
   
-  rf1 = S1mud * ((dgp4+dfq*GP2 + fq*dgp2)*del - ddt*(GP4+fq*GP2));
+  rf1 = -S1mud * ((dgp4+dfq*GP2 + fq*dgp2)*del - ddt*(GP4+fq*GP2));
   
   const T dgp5 = dki * (2.0 * ki*ku + kq*fv - kv*fq) + ki2 * dku +
     ki*(fv*dkq + kq*dfv - fq*dkv - kv*dfq);
@@ -610,7 +610,7 @@ namespace ml{
   
   /* --- dU / dpar --- */
   
-  rf2= S1mud * ((dgp5+dfu*GP2 + fu*dgp2)*del - ddt*(GP5+fu*GP2));
+  rf2= -S1mud * ((dgp5+dfu*GP2 + fu*dgp2)*del - ddt*(GP5+fu*GP2));
   
   const T dgp6 = dki * (2.0*ki*kv + ku*fq - kq*fu) + ki2*dkv +
     ki*(fq*dku + ku*dfq - fu*dkq - kq*dfu);
@@ -618,7 +618,7 @@ namespace ml{
   
   /* --- dV / dpar --- */
   
-  rf3 = S1mud * ((dgp6+dfv*GP2 + fv*dgp2)*del - ddt*(GP6+fv*GP2));
+  rf3 = -S1mud * ((dgp6+dfv*GP2 + fv*dgp2)*del - ddt*(GP6+fv*GP2));
 }
 
   // ******************************************************************************************* //
@@ -731,14 +731,14 @@ namespace ml{
       GP6[ww] = ki2 * kv[ww] + ki[ww] * (ku[ww]*fq[ww] - kq[ww]*fu[ww]);
 
       
-      S1mud[ww] = -S1 * (mu / del[ww]);
+      S1mud[ww] = S1 * (mu / del[ww]);
     }
 
     for(int ww=0; ww<nWav; ++ww){
-	I[ww] = S0 + (-S1mud[ww] * ki[ww] * GP3[ww]);
-	Q[ww] = S1mud[ww] * (GP4[ww] + fq[ww] * GP2[ww]);
-	U[ww] = S1mud[ww] * (GP5[ww] + fu[ww] * GP2[ww]);
-	V[ww] = S1mud[ww] * (GP6[ww] + fv[ww] * GP2[ww]);
+	I[ww] = S0 + (S1mud[ww] * ki[ww] * GP3[ww]);
+	Q[ww] = -S1mud[ww] * (GP4[ww] + fq[ww] * GP2[ww]);
+	U[ww] = -S1mud[ww] * (GP5[ww] + fu[ww] * GP2[ww]);
+	V[ww] = -S1mud[ww] * (GP6[ww] + fv[ww] * GP2[ww]);
     }
 	
     // --- S1 --- //

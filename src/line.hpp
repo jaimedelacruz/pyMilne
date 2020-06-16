@@ -90,7 +90,7 @@ namespace ln{
 
 	    if(strength <= 1.e-5) continue;
 	    
-	    double split =  (g2*Mup - g1*Mlow)*zeeman_const * w02;
+	    double const split =  -(g2*Mup - g1*Mlow)*zeeman_const * w02;
 	    splitting.push_back(split);
 	    this->strength.push_back(strength);
 	    iL.push_back(ilow-1);
