@@ -14,6 +14,9 @@ class MilneEddington:
            Orozco Suarez & del Toro Iniesta (2007)
 
     """
+
+    # *************************************************************************************************
+
     def _initLine(self, label, anomalous):
         if(label == 6301):
             return pyMilne.pyLines(j1 = 2.0, j2 = 2.0, g1 = 1.84, g2 = 1.50, cw = 6301.4995, gf = 10.**-0.718, anomalous = anomalous)
@@ -24,7 +27,9 @@ class MilneEddington:
         else:
             print("pyLines::setLine: Error line with label {0 } is not implented".format(label))
             return pyMilne.pyLines()
-    
+        
+    # *************************************************************************************************
+
     
     def _getLines(self, labels, anomalous):
 
@@ -36,6 +41,8 @@ class MilneEddington:
 
         return lines
     
+    # *************************************************************************************************
+
     def __init__(self, regions, lines, anomalous=True, nthreads=1):
         """
         __init__ method
@@ -69,9 +76,8 @@ class MilneEddington:
         self.Me = pyMilne.pyMilne(regions, pyLines, nthreads=nthreads, anomalous=anomalous)
         
 
+    # *************************************************************************************************
 
-        
-        
     def synthesize(self, model, mu = 1.0):
         """
         synthesize spectra for a given model at a mu angle
@@ -107,6 +113,7 @@ class MilneEddington:
         return self.Me.synthesize(model, mu=mu)
 
 
+    # *************************************************************************************************
 
 
     def get_wavelength_array(self):
@@ -117,6 +124,7 @@ class MilneEddington:
         return self.Me.get_wavelength_array()
 
 
+    # *************************************************************************************************
     
     def synthesize_rf(self, model, mu=1.0):
         """
@@ -154,8 +162,8 @@ class MilneEddington:
             
         return self.Me.synthesize_RF(model, mu=mu)
 
-        
-    
+    # *************************************************************************************************
+      
     def invert(self, model, obs, sig = 1.e-3, mu = 1.0, nRandom = 3, nIter = 20, chi2_thres = 1.0, verbose = False):
         """
         invert observations acquired at a given mu angle
@@ -248,6 +256,7 @@ class MilneEddington:
         #
         return self.Me.invert(model1, obs1, sig1, mu=mu, nRandom=nRandom, nIter = nIter, chi2_thres = chi2_thres, verbose=verbose)
     
+    # *************************************************************************************************
 
     def get_a_guessed_model(self, ny=1, nx=1):
         iPar = np.float64([750, 1.0, 0.39, 0.25, 0.02, 30., 0.1, 0.8, 0.2])
@@ -256,6 +265,8 @@ class MilneEddington:
         for ii in range(9):
             res[:,:,ii] = iPar[ii]
         return res
+    
+    # *************************************************************************************************
 
     def repeat_model(self, m_in, ny, nx):
         """
@@ -276,6 +287,9 @@ class MilneEddington:
             
         return res
 
+
+    # *************************************************************************************************
+    
     def estimate_uncertainties(self, model, obs, sig, mu=1.0):
         """
         estimates uncertainties based on the quality of the fit
@@ -286,14 +300,12 @@ class MilneEddington:
         sig  : Noise estimate 1D or 2D [4,nwav]
 
         returns the uncertainty estimate per parameter per pixel [ny, nx, 9]
+
+        Reference: del Toro Iniesta (2003), Eq. 11.30
         """
 
         
         syn, J = self.synthesize_rf(model, mu=mu)
-
-        #
-        # Use del Toro Iniesta (2003)
-        #
 
         error = model*0
         ny, nx = error.shape[0:2]
@@ -314,3 +326,5 @@ class MilneEddington:
         error *= 2.0 / 9.0
         
         return np.sqrt(error)
+    
+    # *************************************************************************************************

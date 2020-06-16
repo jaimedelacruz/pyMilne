@@ -43,7 +43,7 @@ sysconfig.get_config_vars()['PY_LDFLAGS'] = ''
 
 
 
-comp_flags=['-O3','-std=c++14','-march=native','-fPIC','-fopenmp', '-I./src']
+comp_flags=['-Ofast','-std=c++14','-march=native','-fPIC','-fopenmp', '-I./src']
 
 extension = Extension("pyMilne",
                       sources=["pyMilne.pyx"], 
@@ -57,7 +57,7 @@ extension = Extension("pyMilne",
 extension.cython_directives = {'language_level': "3"}
 
 setup(
-    name = 'WFA Spat',
+    name = 'pyMilne',
     version = '1.0',
     author = 'J. de la Cruz Rodriguez (ISP-SU 2020)',
     ext_modules=[extension],
