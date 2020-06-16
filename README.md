@@ -24,3 +24,6 @@ to the folder where you want to execute these routines.
 ## Usage
 We refer to the commented example.py file that is included with the distribution.
 We have also prepared an example with a real SST/CRISP dataset that can be found [here](https://dubshen.astro.su.se/~jaime/crisp_data/). Simply download all the files included in that folder and run invert_crisp.py. That example is also extensively commented.
+
+## Citing
+These routines were developed and used in [de la Cruz Rodriguez (2019)](https://ui.adsabs.harvard.edu/abs/2019A%26A...631A.153D/abstract). If you find these routines useful for your research, I would appreciate it the most if that publication is cited in your paper.
