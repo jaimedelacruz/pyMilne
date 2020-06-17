@@ -6,9 +6,7 @@ while keeping a convenient python interface.
 
 
 ## Compilation of the C++ module
-These routines require building and solving a sparse linear system of
-equations. In order to improve performance we have implemented that
-part in a C++ module. This module makes use of the Eigen-3 and FFTW-3 
+This module makes use of the Eigen-3 and FFTW-3 
 libraries, which should be in your path. The compilation has been tested
 in Linux and Mac systems (with MacPorts).
 
