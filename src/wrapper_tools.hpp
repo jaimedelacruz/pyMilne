@@ -91,7 +91,7 @@ namespace wr{
       // --- Add perturbation to initial parameters --- //
       
       if(iter > 0){
-	if(iter != (nRandom-1)){
+	if((iter != (nRandom-1)) || (nRandom <= 2)){
 	  std::memcpy(m,Mref,9*sizeof(T));
 	  ml::randomizeParameters(m);
 	}else{
@@ -192,13 +192,13 @@ namespace wr{
 	  per = (ipix*100)/std::max<int>(nPix-1, 1);
 	  if(oper < per){
 	    oper = per;
-	    fprintf(stderr,"\rInverMany: Processed -> %3d%s", per,"%");
+	    fprintf(stderr,"\rInvertMany: Processed -> %3d%s", per,"%");
 	  }
 	}
       }
       
     }// parallel loop
-    fprintf(stderr,"\rInverMany: Processed -> %3d%s\n", 100,"%");
+    fprintf(stderr,"\rInvertMany: Processed -> %3d%s\n", 100,"%");
 
   }
 
