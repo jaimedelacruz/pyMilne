@@ -149,6 +149,13 @@ namespace mfft{
       fftw_execute_dft_r2c(fplan, ppsf, (fftw_complex*)otf);
 
 
+      
+      /* --- take the conjugate --- */
+
+      for(int ii=0; ii<nft; ++ii) otf[ii] = std::conj(otf[ii]);
+
+      
+
       /* --- clean-up --- */
       
       delete [] ppsf;

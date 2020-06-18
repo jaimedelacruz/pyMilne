@@ -4,6 +4,7 @@ A parallel python Milne Eddington synthesis/inversion framework.
 This module has a C++ backend that takes care of the number crunching in parallel,
 while keeping a convenient python interface. 
 
+The code makes use of analytical derivatives of the emerging intensity (e.g., [Orozco Suarez & del Toro Iniesta 2007](https://ui.adsabs.harvard.edu/abs/2007A%26A...462.1137O)) during the inversion process.
 
 ## Compilation of the C++ module
 This module makes use of the Eigen-3 and FFTW-3 
