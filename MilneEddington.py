@@ -17,13 +17,13 @@ class MilneEddington:
 
     # *************************************************************************************************
 
-    def _initLine(self, label, anomalous):
+    def _initLine(self, label, anomalous, dw):
         if(label == 6301):
-            return pyMilne.pyLines(j1 = 2.0, j2 = 2.0, g1 = 1.84, g2 = 1.50, cw = 6301.4995, gf = 10.**-0.718, anomalous = anomalous)
+            return pyMilne.pyLines(j1 = 2.0, j2 = 2.0, g1 = 1.84, g2 = 1.50, cw = 6301.4995, gf = 10.**-0.718, anomalous = anomalous, dw = dw)
         elif(label == 6302):
-            return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-0.968, anomalous = anomalous)
+            return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-0.968, anomalous = anomalous, dw = dw)
         elif(label == 6173):
-            return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.50, g2 = 0.00, cw = 6173.3340, gf = 10.**-2.880, anomalous = anomalous)
+            return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.50, g2 = 0.00, cw = 6173.3340, gf = 10.**-2.880, anomalous = anomalous, dw = dw)
         else:
             print("pyLines::setLine: Error line with label {0 } is not implented".format(label))
             return pyMilne.pyLines()
@@ -31,19 +31,19 @@ class MilneEddington:
     # *************************************************************************************************
 
     
-    def _getLines(self, labels, anomalous):
+    def _getLines(self, labels, anomalous, dw):
 
         nLines = len(labels)
         lines  = [None]*nLines
 
         for ii in range(nLines):
-            lines[ii] = self._initLine(labels[ii], anomalous)
+            lines[ii] = self._initLine(labels[ii], anomalous, dw)
 
         return lines
     
     # *************************************************************************************************
 
-    def __init__(self, regions, lines, anomalous=True, nthreads=1):
+    def __init__(self, regions, lines, anomalous=True, dw_lines = 0.5,  nthreads=1):
         """
         __init__ method
         
@@ -54,6 +54,8 @@ class MilneEddington:
              lines:     list with the labels of lines to be used (defined in _initLine).
 
              anomalous: If True, all Zeeman components are calculated for each spectral lines.
+
+             dw_lines: spectral window +/- dw from line center to compute the line profile. Outside that window the profile won't be calculated
 
              nthreads:  number of threads to be used when synthesizing or inverting. Only relevant if there is 
                         more than 1 pixel.
@@ -71,7 +73,7 @@ class MilneEddington:
             return None
                 
         # Init C++ object
-        pyLines =  self._getLines(lines, anomalous)
+        pyLines =  self._getLines(lines, anomalous, dw_lines)
 
         self.Me = pyMilne.pyMilne(regions, pyLines, nthreads=nthreads, anomalous=anomalous)
         
