@@ -316,10 +316,10 @@ namespace lm{
     
     T fitData(ml::Milne<T> const& Me,  int const nDat, const T* __restrict__ dat, T* __restrict__ syn, const T* __restrict__ sig, T* __restrict__ m, T const mu, int const max_iter = 20, T iLam = sqrt(10.0f), T const Chi2_thres = 1.0, T const fx_thres = 2.e-3, int const delay_braket = 2, bool verbose = true)const
     {
-      static constexpr T facLam = sqrt(10.0);
-      static constexpr T maxLam = 100*facLam;
-      static constexpr T minLam = 1.e-2;
-      static constexpr int max_n_reject = 6;
+      static constexpr T const facLam = 3.1622776601683795;
+      static constexpr T const maxLam = 100*facLam;
+      static constexpr T const minLam = 1.e-2;
+      static constexpr int const max_n_reject = 6;
       
       // --- Init container --- //
 
@@ -403,7 +403,7 @@ namespace lm{
 	  if(iLam > 1.0001*minLam)
 	    iLam = checkLambda(iLam/facLam, minLam, maxLam);
 	  else
-	    iLam = 1.0/facLam;
+	    iLam = 10*minLam;
 	    
 	  if(dfx < fx_thres){
 	    if(tooSmall) quit = true;
