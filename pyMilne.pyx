@@ -19,7 +19,7 @@ __status__="Developing"
 #
 cdef extern from "line.hpp" namespace "ln":
     cdef cppclass line[T]:
-        line(const T j1, const T j2, const T g1, const T g2, const T  igf, const T lam0, bool anomalous)
+        line(const T j1, const T j2, const T g1, const T g2, const T  igf, const T lam0, bool anomalous, const T dw)
 ctypedef line[double] lined
 
 
@@ -62,8 +62,9 @@ cdef class pyLines:
     cpdef double w0
     cpdef double gf
     cpdef bool anomalous
+    cpdef double dw
 
-    def __cinit__(self, j1=0, j2=0, g1=0, g2=0, gf = 1.0, cw=0.0, bool anomalous = True):
+    def __cinit__(self, j1=0, j2=0, g1=0, g2=0, gf = 1.0, cw=0.0, bool anomalous = True, double dw = 0.55):
         self.j1 = <double>j1
         self.j2 = <double>j2
         self.g1 = <double>g1
@@ -71,16 +72,17 @@ cdef class pyLines:
         self.w0 = <double>cw
         self.gf = <double>gf
         self.anomalous = <bool>anomalous
+        self.dw = <double> <double>dw
 
 
     cpdef setLine(self, int label):
         
         if(label == 6301):
-            self.j1 = 2.0; self.j2 = 2.0; self.g1 = 1.84; self.g2 = 1.50; self.w0 = 6301.4995; self.gf = 10.**-0.718
+            self.j1 = 2.0; self.j2 = 2.0; self.g1 = 1.84; self.g2 = 1.50; self.w0 = 6301.4995; self.gf = 10.**-0.718; self.dw = 0.6
         elif(label == 6302):
-            self.j1 = 1.0; self.j2 = 0.0; self.g1 = 2.49; self.g2 = 0.0; self.w0 = 6302.4931; self.gf  = 10.0**-0.968
+            self.j1 = 1.0; self.j2 = 0.0; self.g1 = 2.49; self.g2 = 0.0; self.w0 = 6302.4931; self.gf  = 10.0**-0.968; self.dw = 0.6
         elif(label == 6173):
-            self.j1 = 1.0; self.j2 = 0.0; self.g1 = 2.50; self.g2 = 0.0; self.w0 = 6173.3340; self.gf  = 10.0**-2.880
+            self.j1 = 1.0; self.j2 = 0.0; self.g1 = 2.50; self.g2 = 0.0; self.w0 = 6173.3340; self.gf  = 10.0**-2.880; self.dw = 0.6
         else:
             print("pyLines::setLine: Error line with label {0 } is not implented".format(label))
 
@@ -98,6 +100,8 @@ cdef class pyLines:
         return self.gf
     cpdef getanomalous(self):
         return self.anomalous
+    cpdef getDw(self):
+        return self.dw
     
 cdef class pyMilne: 
     cdef vector[Milned] Me
@@ -153,7 +157,7 @@ cdef class pyMilne:
         # Init lines
         #
         for ii in range(nlines):
-            self.lines.push_back(lined(lines[ii].getj1(), lines[ii].getj2(), lines[ii].getg1(), lines[ii].getg2(), lines[ii].getgf(), lines[ii].getw0(), lines[ii].getanomalous()))
+            self.lines.push_back(lined(lines[ii].getj1(), lines[ii].getj2(), lines[ii].getg1(), lines[ii].getg2(), lines[ii].getgf(), lines[ii].getw0(), lines[ii].getanomalous(), lines[ii].getDw()))
 
 
         #

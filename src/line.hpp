@@ -19,21 +19,22 @@ namespace ln{
 
   template<class T> struct line{
 
-    double w0;
+    double w0, dw;
     int nZ;
     int l0, l1;
     T gf;
     std::vector<T> strength, splitting;
     std::vector<int> iL;
     
-    line():w0(0), nZ(0), l0(0), l1(0), gf(0){};
-    line(const T j1, const T j2, const T g1, const T g2, const T  igf, const double lam0, bool anomalous = true):
-      w0(0), nZ(0), gf(igf){
+    line():w0(0), dw(0.5), nZ(0), l0(0), l1(0), gf(0){};
+    line(const T j1, const T j2, const T g1, const T g2, const T  igf, const double lam0, bool anomalous = true, T const dw_in = 0.5):
+      w0(0), dw(dw_in), nZ(0), l0(0), l1(0), gf(igf)
+    {
       if(anomalous) setSplitting(j1, j2, g1, g2, lam0);
       else          setSplittingNorm(j1, j2, g1, g2, lam0);
       
       fprintf(stderr, "line::line: Initialized [%f] -> %3d Zeeman components\n", w0, nZ);
-
+      
     }
     void setSplitting(const T &j1, const T &j2, const T &g1, const T &g2, const double &lam0)
     {
@@ -105,11 +106,11 @@ namespace ln{
     
     // -------------------------------------------------------------------------------------------------------------//
     
-    line(const line &lin): w0(lin.w0), nZ(lin.nZ), l0(lin.l0), l1(lin.l1), gf(lin.gf), strength(lin.strength), splitting(lin.splitting), iL(lin.iL){};
+    line(const line &lin): w0(lin.w0), dw(lin.dw), nZ(lin.nZ), l0(lin.l0), l1(lin.l1), gf(lin.gf), strength(lin.strength), splitting(lin.splitting), iL(lin.iL){};
     
     // -------------------------------------------------------------------------------------------------------------//
     
-    line &operator=(const line &lin){w0 = lin.w0, nZ = lin.nZ, gf = lin.gf, strength = lin.strength, splitting = lin.splitting, iL = lin.iL; l0=lin.l0; l1=lin.l1; return *this;};
+    line &operator=(const line &lin){w0 = lin.w0, dw = lin.dw, nZ = lin.nZ, gf = lin.gf, strength = lin.strength, splitting = lin.splitting, iL = lin.iL; l0=lin.l0; l1=lin.l1; return *this;};
     
     // -------------------------------------------------------------------------------------------------------------//
 

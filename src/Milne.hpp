@@ -115,23 +115,38 @@ namespace ml{
     Milne(std::vector<Region<T>> const& regions_in, std::vector<ln::line<T>> const& lines_in): wav(), lines(lines_in), regions(regions_in)
     {
 
+      bool regions_overlap = false;
+      
       // --- count total number of wavelength points --- //
       int nWav = 0;
       for(auto &it: regions)
 	nWav += int(it.wav.size());
 
+      // --- check if regions overlap --- //
+
+      int const nRegions = regions.size();
+      for(int ii=1; ii<nRegions; ++ii){
+	int const nLast = regions[ii-1].wav.size()-1;
+	if(regions[ii-1].wav[nLast] > regions[ii].wav[0]) regions_overlap = true;
+      }
+
+      
       // --- Allocate array --- //
       wav.reserve(nWav);
 
+      
       // --- Store wavelengths as a linear array --- //
       int kk = 0;
       for(auto &it: regions){
 	
 	it.idx = kk;
 	int const inWav = int(it.wav.size());
+	kk += inWav;
+	
 	
 	for(int ii=0; ii<inWav; ++ii)
 	  wav.push_back(it.wav[ii]);
+
       }
 
       // --- normalize the line opacity with the ratio relative to the first line of the list --- //
@@ -141,12 +156,36 @@ namespace ml{
       }
 
       
-      // --- For the time being compute the profiles of all lines at all wavelengths --- //
-      for(auto &it: lines){
-	it.l0 = 0;
-	it.l1 = nWav-1;
+      // --- If regions do not overlap, accelerate calculations by restricting the
+      // --- calculations for each line 
+
+      int const cnwav = nWav;
+      if(!regions_overlap){
+	for(auto &it: lines){
+	  double const w0 = it.w0 - it.dw;
+	  double const w1 = it.w0 + it.dw;
+
+	  it.l0 = 0;
+	  it.l1 = nWav-1;
+	  
+	  for(int ii=0; ii<cnwav; ++ii){
+	    if(wav[ii] <= w0) it.l0 = ii;
+	    if(wav[ii] <= w1) it.l1 = ii;
+	  }
+	}
+      }else{
+	
+	// --- For the time being compute the profiles of all lines at all wavelengths --- //
+	for(auto &it: lines){
+	  it.l0 = 0;
+	  it.l1 = nWav-1;
+	}
       }
-			 
+
+      //for(auto &it: lines){
+      //	fprintf(stderr,"%lf -> %d %d\n", it.w0, it.l0, it.l1);
+      //}
+      
     }
     
     // --------------------------------------------------- //
