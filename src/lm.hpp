@@ -157,7 +157,7 @@ namespace lm{
     // ***************************************** //
 
   template<typename T>
-  T fx_dx(container<T> const& myData, int const nPar, T* __restrict__ m_in, T* __restrict__ syn, T* __restrict__ r, T* __restrict__ J)
+  T fx_dx(container<T> const& myData, int const nPar, const T* __restrict__ m_in, T* __restrict__ syn, T* __restrict__ r, T* __restrict__ J)
   {
 
     // --- Copy model --- //
@@ -337,12 +337,9 @@ namespace lm{
       int const cPar = nPar;
       T bestChi2     = 1.e32;
       T     Chi2     = 1.e32;
-      T trialChi2    = 1.e32;
       
       T* __restrict__ bestModel  = new T [cPar]();
       T* __restrict__ bestSyn    = new T [nDat]();      
-      T* __restrict__ trialModel = new T [cPar]();
-      T* __restrict__ trialSyn   = new T [nDat]();
 
       T* __restrict__     J      = new T [cPar*nDat]();
       T* __restrict__     r      = new T [nDat]();
@@ -357,8 +354,8 @@ namespace lm{
       }
       
       std::memcpy(bestModel,  m, cPar*sizeof(T));
-      std::memcpy(trialModel, m, cPar*sizeof(T));
 
+      
       // --- get derivatives and init Chi2 --- //
 
       bestChi2 = fx_dx<T>(myData, nPar, bestModel, bestSyn, r, J);
@@ -469,9 +466,6 @@ namespace lm{
 
       delete [] bestModel;
       delete [] bestSyn;
-      delete [] trialModel;
-      delete [] trialSyn;
-      //      delete [] bestJ;
       delete [] r;
       delete [] J;
 

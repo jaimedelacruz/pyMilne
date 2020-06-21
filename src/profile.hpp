@@ -25,17 +25,16 @@ inline T vf(T const& damp, T const& vv,  T &F)
   constexpr static const T B[7] = {122.60793177387535, 352.730625110963558, 457.334478783897737, 
 				   348.703917719495792, 170.354001821091472, 53.992906912940207, 10.479857114260399};
   
-  std::complex<T> Z(damp, -std::abs<T>(vv));
+  std::complex<T> const Z(damp, -std::abs<T>(vv));
     
-  Z = ((((((A[6]*Z+A[5])*Z+A[4])*Z+A[3])*Z+A[2])*Z+A[1])*Z+A[0]) /
+  std::complex<T> const Z1 = ((((((A[6]*Z+A[5])*Z+A[4])*Z+A[3])*Z+A[2])*Z+A[1])*Z+A[0]) /
     (((((((Z+B[6])*Z+B[5])*Z+B[4])*Z+B[3])*Z+B[2])*Z+B[1])*Z+B[0]);
-
   
-  T const tmp = Z.imag();
-
+  
+  T const tmp = Z1.imag();
+  
   F = ((vv < 0) ? -0.5f : 0.5f) * tmp;
-  return Z.real();
-    
+  return Z1.real();  
 }
   
   // ---------------------------------------------------------------------------------------- //
