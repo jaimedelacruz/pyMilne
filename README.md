@@ -31,7 +31,7 @@ conda activate bla
 conda install fftw clangxx_osx-64 eigen ipython matplotlib numpy cython scipy astropy llvm-openmp
 
 ```
-You will need to edit one line in setup.py to point to the folder where you have your environment installed. Please make the root_dir variable point to your environment directory. In my case it looks something like this:
+You will need to edit one line in setup.py to point to the folder where you have your environment installed. Please make the root_dir variable point to your environment directory in the Darwin section of setup.py. In my case it looks something like this:
 ```python
 if(plt.system() == 'Darwin'):
     root_dir = '/Users/jaime/anaconda3/envs/bla/'
