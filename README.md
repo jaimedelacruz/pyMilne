@@ -34,24 +34,12 @@ conda install fftw clangxx_osx-64 eigen ipython matplotlib numpy cython scipy as
 After that, you will be able to compile the binary as explained above. Just remember to load this environment every time you want to use this module.
 
 
-You will need to edit one line in setup.py to point to the folder where you have your environment installed. Please make the root_dir variable point to your environment directory in the Darwin section of setup.py. In my case it looks something like this:
-```python
-if(plt.system() == 'Darwin'):
-    root_dir = '/Users/jaime/anaconda3/envs/bla/'
-```
-
 If you want to use anaconda python in a similar way in Linux, you can follow a very similar approach,
 but replacing the compiler packages for gcc:
 ```
 conda create --name bla
 conda activate bla
 conda install fftw gxx_linux-64 eigen ipython matplotlib numpy cython scipy astropy
-```
-and the corresponding line in setup.py.
-In my case it looks something like this:
-```python
-else:
-    root_dir = '/home/jaime/anaconda3/envs/bla/'
 ```
 
 

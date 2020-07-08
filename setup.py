@@ -7,16 +7,20 @@ from distutils import sysconfig
 #import numpy.distutils.intelccompiler
 import numpy.distutils.ccompiler
 import platform as plt
+import sys
 
 os.system('rm pyMilne.*.so pyMilne.*.cpp')
+root_dir = os.path.abspath(sys.executable)
+
+
 
 if(plt.system() == 'Darwin'):
-    root_dir = '/opt/local/'
+    #root_dir = '/opt/local/'
     CC = 'clang'
     CXX= 'clang++'
     link_opts = ["-stdlib=libc++","-bundle","-undefined","dynamic_lookup", "-fopenmp"]
 else:
-    root_dir = '/usr/'
+    #root_dir = '/usr/'
     CC = 'gcc'
     CXX= 'g++'
     link_opts = ["-shared", "-fopenmp"]
