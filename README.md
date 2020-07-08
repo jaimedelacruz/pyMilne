@@ -20,6 +20,24 @@ If everything compiles well, you should see a new file called pyMilne.???.so
 that should be copied along with MilneEddington.py to your PYTHONPATH folder or
 to the folder where you want to execute these routines.
 
+### Using Anaconda python
+You can use Anaconda python as a package manager to install all dependencies that are required.
+This is particularly convenient in OSX, where the Eigen3, FFTW-3 and python are not installed by default.
+
+To do so, we can create a separate environment to install all packages, in this case the environment is called bla but feel free to replace that with a different name:
+```
+conda create --name bla
+conda activate bla
+conda install fftw clangxx_osx-64 eigen ipython matplotlib numpy cython scipy astropy llvm-openmp
+
+```
+You will need to edit one line in setup.py to point to the folder where you have your environment installed. Please make the root_dir variable point to your environment directory. In my case it looks something like this:
+```python
+if(plt.system() == 'Darwin'):
+    root_dir = '/Users/jaime/anaconda3/envs/bla/'
+```
+
+
 ## Usage
 We refer to the commented example.py file that is included with the distribution.
 We have also prepared an example with a real SST/CRISP dataset that can be found [here](https://dubshen.astro.su.se/~jaime/crisp_data/). Simply download all the files included in that folder and run invert_crisp.py. That example is also extensively commented.
