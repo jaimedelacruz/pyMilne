@@ -40,6 +40,20 @@ if(plt.system() == 'Darwin'):
     root_dir = '/Users/jaime/anaconda3/envs/bla/'
 ```
 
+If you want to use anaconda python in a similar way in Linux, you can follow a very similar approach,
+but replacing the compiler packages for gcc:
+```
+conda create --name bla
+conda activate bla
+conda install fftw gxx_linux-64 eigen ipython matplotlib numpy cython scipy astropy
+```
+and the corresponding line in setup.py:
+In my case it looks something like this:
+```python
+else:
+    root_dir = '/home/jaime/anaconda3/envs/bla/'
+```
+
 
 ## Usage
 We refer to the commented example.py file that is included with the distribution.
