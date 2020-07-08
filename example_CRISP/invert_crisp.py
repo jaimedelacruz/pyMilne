@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #
     # make plots
     #
-    plt.ion()
+    #plt.ion()
     f, ax = plt.subplots(nrows=3, ncols=3, figsize=(11,4))
     ax1 = ax.flatten()
 
