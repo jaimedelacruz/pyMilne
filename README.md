@@ -43,7 +43,7 @@ if(plt.system() == 'Darwin'):
 
 ## Usage
 We refer to the commented example.py file that is included with the distribution.
-We have also prepared an example with a real SST/CRISP dataset that can be found [here](https://dubshen.astro.su.se/~jaime/crisp_data/). Simply download all the files included in that folder and run invert_crisp.py. That example is also extensively commented.
+We have also prepared an example with a real SST/CRISP dataset that can be found in the example_CRISP/ folder. Simply run invert_crisp.py. That example is also extensively commented.
 
 ## Citing
 These routines were developed and used as part of the study by [de la Cruz Rodriguez (2019)](https://ui.adsabs.harvard.edu/abs/2019A%26A...631A.153D/abstract). If you find these routines useful for your research, I would appreciate it the most if that publication is cited in your paper.
