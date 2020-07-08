@@ -47,7 +47,7 @@ conda create --name bla
 conda activate bla
 conda install fftw gxx_linux-64 eigen ipython matplotlib numpy cython scipy astropy
 ```
-and the corresponding line in setup.py:
+and the corresponding line in setup.py.
 In my case it looks something like this:
 ```python
 else:
