@@ -31,6 +31,9 @@ conda activate bla
 conda install fftw clangxx_osx-64 eigen ipython matplotlib numpy cython scipy astropy llvm-openmp
 
 ```
+After that, you will be able to compile the binary as explained above. Just remember to load this environment every time you want to use this module.
+
+
 You will need to edit one line in setup.py to point to the folder where you have your environment installed. Please make the root_dir variable point to your environment directory in the Darwin section of setup.py. In my case it looks something like this:
 ```python
 if(plt.system() == 'Darwin'):
