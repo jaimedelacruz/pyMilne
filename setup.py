@@ -8,10 +8,11 @@ from distutils import sysconfig
 import numpy.distutils.ccompiler
 import platform as plt
 import sys
+import pathlib
 
 os.system('rm pyMilne.*.so pyMilne.*.cpp')
-root_dir = os.path.abspath(sys.executable)
-
+p = pathlib.Path(sys.executable)
+root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 
 if(plt.system() == 'Darwin'):
