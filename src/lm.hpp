@@ -67,12 +67,20 @@ namespace lm{
   struct container{
     int const nDat;
     T const mu;
+    int Nreal;
     const ml::Milne<T>& Me;
     const T* __restrict__ d;
     const T* __restrict__ sig;
     const std::vector<Par<T>> &Pinfo;
 
-    container(int const nd, T const imu, ml::Milne<T> const& iMe, const T* __restrict__ din, const T* __restrict__ sigin, const std::vector<Par<T>> &Pi): nDat(nd), mu(imu), Me(iMe), d(din), sig(sigin), Pinfo(Pi){};
+    container(int const nd, T const imu, ml::Milne<T> const& iMe, const T* __restrict__ din, const T* __restrict__ sigin, const std::vector<Par<T>> &Pi): nDat(nd), mu(imu), Nreal(1), Me(iMe), d(din), sig(sigin), Pinfo(Pi)
+    {
+      // --- only account for non-dummy points in the data array --- //
+      Nreal = 0;
+      for(int ii = 0; ii<nDat; ++ii)
+	if(sig[ii] < 1.e20) Nreal += 1;
+      
+    }
     
   };
 
@@ -143,7 +151,7 @@ namespace lm{
 
     // --- calculate residue --- //
 
-    T const scl = sqrt(T(nDat)); 
+    T const scl = sqrt(T(myData.Nreal)); 
     for(int ii=0; ii<nDat; ++ii) r[ii] = (dat[ii] - syn[ii]) / (sig[ii] * scl);
 
 
@@ -184,7 +192,7 @@ namespace lm{
     
     // --- calculate residue --- //
 
-    T const scl = sqrt(T(nDat)); 
+    T const scl = sqrt(T(myData.Nreal)); 
     for(int ii=0; ii<nDat; ++ii) r[ii] = (dat[ii] - syn[ii]) / (sig[ii] * scl);
 
 

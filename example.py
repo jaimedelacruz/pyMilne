@@ -3,12 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
+    #
+    # Decide to work in float32 or float64
+    #
+    dtype = 'float32'
+    
 
     #
     # Init Milne-Eddington object, let's use 6301, 6302 with no degradation PSF
     # Adjust the number of threads as you wish!
     #
-    regions = [[np.arange(201, dtype='float64')*0.01 + 6301.0, None]]
+    regions = [[np.arange(201, dtype=dtype)*0.01 + 6301.0, None]]
     lines   = [6301, 6302]
 
     #
@@ -17,7 +22,7 @@ if __name__ == "__main__":
     #
     # regions = [[np.arange(201, dtype='float64')*0.01 + 6301.0, psf]]
     
-    me = MilneEddington.MilneEddington(regions, lines, nthreads=2)
+    me = MilneEddington.MilneEddington(regions, lines, nthreads=2, precision=dtype)
 
 
     

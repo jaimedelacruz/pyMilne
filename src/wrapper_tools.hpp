@@ -9,6 +9,9 @@
 #include "Milne.hpp"
 #include "lm.hpp"
 
+#include "spatially_regularized_tools.hpp"
+#include "spatially_regularized.hpp"
+
 namespace wr{
   
   template<typename T>
@@ -93,10 +96,10 @@ namespace wr{
       if(iter > 0){
 	if((iter != (nRandom-1)) || (nRandom <= 2)){
 	  std::memcpy(m,Mref,9*sizeof(T));
-	  ml::randomizeParameters(m);
+	  ml::randomizeParameters<T>(m);
 	}else{
 	  std::memcpy(m,bestM,9*sizeof(T));
-	  ml::randomizeParameters(m, 0.2);
+	  ml::randomizeParameters<T>(m, 0.2);
 	}
 
 	if(m[7] > m[8]){
@@ -204,7 +207,41 @@ namespace wr{
 
   // ********************************************************************* //
 
+  template<typename T>
+  T invert_spatially_regularized(int const ny, int const nx, int const ndat,
+				 std::vector<ml::Milne<T>> const& ME,  T* __restrict__ m,
+				 T* __restrict__ obs, T* __restrict__ syn, T* __restrict__ sig, int const method,
+				 int const nIter, T const chi2_thres, T const mu, T const iLam,
+				 const T* const __restrict__ alphas, int const delay_bracket)
+  {
+
+    // --- Init parameters info array --- //
+    
+    std::vector<spa::Par<T>> Pinfo;
+    for(int ii=0; ii<9;++ii)
+      Pinfo.emplace_back(spa::Par<T>(((ii == 2)? true: false), true, ml::pscl<T>[ii],
+				     ml::pmin<T>[ii], ml::pmax<T>[ii], alphas[ii]));
   
+    
+    // --- init container --- //
+    
+    spa::container<T> cont(ny, nx, mu, ndat, obs, sig, Pinfo, ME);
+    
+
+    
+    // --- Init inverter class --- //
+    
+    spa::lms<T> fitter(9, ny, nx);
+
+
+    // --- Fit data --- //
+    
+    return fitter.fitData(cont,  9, m, syn, nIter, iLam, chi2_thres,  2.e-3,  delay_bracket,  true);
+  }
+  
+  
+  // ********************************************************************* //
+
 }
 
 #endif
