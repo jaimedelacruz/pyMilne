@@ -24,11 +24,9 @@
 #include "lm.hpp"
 #include "spatially_regularized_tools.hpp"
 
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
-//#include <Eigen/UmfPackSupport>
-//#include <unsupported/Eigen/SparseExtra>
+#include <eigen3/Eigen/Sparse>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/unsupported/Eigen/CXX11/Tensor>
 
 namespace spa{
 
