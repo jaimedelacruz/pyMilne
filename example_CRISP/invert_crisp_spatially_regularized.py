@@ -43,11 +43,11 @@ class container:
 # ***********************************************************
 
 if __name__ == "__main__":
+
     #
     # Decide to work in float32 or float64
     #
     dtype = 'float32'
-    
     
     #
     # Load data, wavelength array and cmap
@@ -142,28 +142,11 @@ if __name__ == "__main__":
     # Run a first cycle with 4 inversions of each pixel (1 + 3 randomizations)
     # 
     t0 = time.time()
-    Imodel, syn, chi2 = me.invert(Imodel, obs, sig, nRandom=4, nIter=25, chi2_thres=1.0, mu=0.93)
+    mo, syn, chi2 = me.invert_spatially_regularized(Imodel, obs, sig,  nIter=25, chi2_thres=1.0, mu=0.93, alpha=30., alphas = np.float32([1,1,1,0.01,0.1, 1.0, 0.1, 0.1, 0.1 ]), method=1, delay_bracket=3)
     t1 = time.time()
-    print("dT = {0}s -> <Chi2> = {1}".format(t1-t0, chi2.mean()))
+    print("dT = {0}s -> <Chi2> (including regularization) = {1}".format(t1-t0, chi2))
 
     
-    #
-    # Smooth result to remove outlayers
-    #
-    psf = im.gauss2d(45,15)
-    psf /= psf.sum()
-    
-    for ii in range(9):
-        Imodel[:,:,ii] = im.fftconvol2d(Imodel[:,:,ii], psf)
-
-    #
-    # Run second cycle, starting from the smoothed guessed model
-    #
-    t0 = time.time()
-    mo, syn, chi2 = me.invert(Imodel, obs, sig, nRandom=4, nIter=25, chi2_thres=1.0, mu=0.93)
-    t1 = time.time()
-    print("dT = {0}s -> <Chi2> = {1}".format(t1-t0, chi2.mean()))
-
 
     #
     # Correct velocities for cavity error map from CRISP
