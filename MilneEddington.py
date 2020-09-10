@@ -368,8 +368,6 @@ class MilneEddington:
                 sig: scalar or 2D array [4,nwav] with the noise estimate
 
                  mu:    heliocentric angle for the synthesis
-            nRandom: if larger than 1, the input model parameters will be randomized and more inversion will be performed
-                     to avoid converging to a local minimum. The best fit will be returned
               nIter: maximum number of Levenberg Marquardt iterations per inversion
          chi2_thres: stop inversion if Chi2 <= chi2_thres
             verbose: only used if nthreads=1, printsout info of each LM iteration
@@ -460,5 +458,5 @@ class MilneEddington:
         #
         # Call C++ module
         #
-        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nRandom=nRandom, nIter = nIter, chi2_thres = chi2_thres, verbose=verbose, method=method, delay_bracket = delay_bracket)
+        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres, verbose=verbose, method=method, delay_bracket = delay_bracket)
     
