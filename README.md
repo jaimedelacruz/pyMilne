@@ -49,3 +49,6 @@ We have also prepared an example with a real SST/CRISP dataset that can be found
 
 ## Citing
 These routines were developed and used as part of the study by [de la Cruz Rodriguez (2019)](https://ui.adsabs.harvard.edu/abs/2019A%26A...631A.153D/abstract). If you find these routines useful for your research, I would appreciate it the most if that publication is cited in your paper.
+
+## Acknowledgements
+This project has received funding from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (SUNMAG, grant agreement 759548).
