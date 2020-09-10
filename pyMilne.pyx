@@ -550,7 +550,7 @@ cdef class pyMilne_float:
             
         return res
 
-    def invert_spatially_regularized(self, ar[float,ndim=3] m, ar[float,ndim=4] obs, ar[float,ndim=2] sig, ar[float,ndim=1] alphas, float mu = 1.0,  int nIter = 20, float chi2_thres = 1.0, verbose = True, int method = 0, float iLam = 10, int delay_bracket = 2):
+    def invert_spatially_regularized(self, ar[float,ndim=3] m, ar[float,ndim=4] obs, ar[float,ndim=2] sig, ar[float,ndim=1] alphas, float mu = 1.0,  int nIter = 20, float chi2_thres = 1.0,  int method = 0, float iLam = 10, int delay_bracket = 2):
 
         #
         # Dimensions

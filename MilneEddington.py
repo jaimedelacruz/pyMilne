@@ -366,14 +366,13 @@ class MilneEddington:
               model: 1D [9] or 3D array [ny,nx,9] with the parameters of the model
                 obs: 2D [4,nwav] or 4D array [ny,nx,4,nwav] with the observed profiles. Should be normalized to the mean continuum.
                 sig: scalar or 2D array [4,nwav] with the noise estimate
-
                  mu:    heliocentric angle for the synthesis
               nIter: maximum number of Levenberg Marquardt iterations per inversion
          chi2_thres: stop inversion if Chi2 <= chi2_thres
-            verbose: only used if nthreads=1, printsout info of each LM iteration
               alpha: global regularization weight that multiplies the value of "alphas" (default = 1).
              alphas: the relative scaling of regularization weights for each parameter (default = 1).
              method: Numerical method to solve the sparse system: 0) Conjugate Gradient, 1) BiCGStab, 2) SparseLU (default 0)
+      delay_bracket: Delay optimal lambda bracketing for this number of iterations. Avoids taking too large steps in the initial iterations.
         The model parameters are: [|B| [G], inc [rad], azi [rad], vlos [km/s], vDop [\AA], eta_l, damp, S0, S1]
 
         Returns:
@@ -458,5 +457,5 @@ class MilneEddington:
         #
         # Call C++ module
         #
-        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres, verbose=verbose, method=method, delay_bracket = delay_bracket)
+        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
     
