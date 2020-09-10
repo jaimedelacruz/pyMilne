@@ -22,7 +22,6 @@
 #include "line.hpp"
 #include "Milne.hpp"
 #include "lm.hpp"
-#include "cfits.hpp"
 #include "spatially_regularized_tools.hpp"
 
 #include <Eigen/Sparse>
