@@ -52,11 +52,11 @@ comp_flags=['-Ofast','-std=c++14','-march=native','-fPIC','-fopenmp', '-I./src',
 
 extension = Extension("pyMilne",
                       sources=["pyMilne.pyx"], 
-                      include_dirs=["./", root_dir+"/include/",numpy.get_include(),'./eigen3/'],
+                      include_dirs=["./",numpy.get_include(), './eigen3'],
                       language="c++",
                       extra_compile_args=comp_flags,
                       extra_link_args=link_opts,
-                      library_dirs=[root_dir+'/lib/','./'],
+                      library_dirs=['./'],
                       libraries=['fftw3'])
 
 extension.cython_directives = {'language_level': "3"}

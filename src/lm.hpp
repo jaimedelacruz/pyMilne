@@ -12,7 +12,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 #include "Milne.hpp"
 
