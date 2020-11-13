@@ -326,7 +326,7 @@ namespace lm{
     {
       static constexpr T const facLam = 3.1622776601683795;
       static constexpr T const maxLam = 100*facLam;
-      static constexpr T const minLam = 1.e-2;
+      static constexpr T const minLam = 1.e-4;
       static constexpr int const max_n_reject = 6;
       
       // --- Init container --- //
