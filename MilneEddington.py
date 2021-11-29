@@ -135,7 +135,7 @@ class MilneEddington:
 
             
             
-        return self.Me.synthesize(model, mu=mu)
+        return self.Me.synthesize(model1, mu=mu)
 
 
     # *************************************************************************************************
@@ -186,7 +186,7 @@ class MilneEddington:
 
             
             
-        return self.Me.synthesize_RF(model, mu=mu)
+        return self.Me.synthesize_RF(model1, mu=mu)
 
     # *************************************************************************************************
       
