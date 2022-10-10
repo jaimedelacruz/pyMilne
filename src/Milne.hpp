@@ -21,17 +21,17 @@ namespace ml{
   // *************************************************** //
 
   template<typename T>
-  static constexpr T pmax[9] = {6000., phyc::PI, phyc::PI, 10., 0.200, 2000.00, 10.,  10, 10};
+  static constexpr T pmax[9] = {6000., phyc::PI, phyc::PI, 13., 0.200, 120.00, 10.,  10, 10};
   
   template<typename T>
-  static constexpr T pmin[9] = {0.,           0,        0,-10., 0.001,   0.010, 1.e-5, 0,  0};
+  static constexpr T pmin[9] = {0.,           0,        0,-13., 0.001,   0.010, 1.e-5, 0, -10};
   
   template<typename T>
-  static constexpr T pscl[9] = {1000., 1.0, 1.0, 1., 0.05, 100., 0.1,1.0, 1.0};
+  static constexpr T pscl[9] = {1000., 1.0, 1.0, 1., 0.05, 10., 0.1, 1.0, 1.0};
 
   // *************************************************** //
 
-  template<typename T> void randomizeParameters(T* __restrict__ m, T const scl=1.0)
+  template<typename T> void randomizeParameters(T* const __restrict__ m, T const scl=1.0)
   {
     static std::uniform_int_distribution<std::mt19937::result_type> rand_dist(0,1.e4);
     static constexpr T norms[9] = {2000, 3.1415926/2, 3.1415926/2, 6, 0.02, 100., 0.5, 0.4, 0.4};
@@ -70,7 +70,7 @@ namespace ml{
     
     ~Region(){};
 
-    inline void Degrade(T* __restrict__ spectrum)const{
+    inline void Degrade(T* const __restrict__ spectrum)const{
       Degradation.convolve(nLambda, &spectrum[idx]);
     }
 
@@ -205,7 +205,7 @@ namespace ml{
     
     // --------------------------------------------------- //
 
-    void synthesize(const T* __restrict__ m_in, T* __restrict__ out, T const mu)const
+    void synthesize(const T* const __restrict__ m_in, T* const __restrict__ out, T const mu)const
     {
       // --- call external function --- //
       
@@ -223,7 +223,7 @@ namespace ml{
     
     // --------------------------------------------------- //
     
-    void synthesize_rf(const T* __restrict__ m_in, T* __restrict__ out, T* __restrict__ rf, T const mu)const
+    void synthesize_rf(const T* const __restrict__ m_in, T* const __restrict__ out, T* const __restrict__ rf, T const mu)const
     {
       // --- call external function --- //
       
@@ -250,7 +250,7 @@ namespace ml{
     
     // --------------------------------------------------- //
 
-    inline static void checkParameters(T* __restrict__ pars)
+    inline static void checkParameters(T* const __restrict__ pars)
     {
       for(int ii=0; ii<9; ++ii)
 	pars[ii] = std::min<T>(std::max<T>(pmin<T>[ii], pars[ii]), pmax<T>[ii]);
