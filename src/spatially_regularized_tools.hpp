@@ -154,24 +154,25 @@ namespace spa{
   // ************************************************************** //
   
   template<typename T> struct container{
-    int nDat, ny, nx, Nreal;
+    long nDat, ny, nx, Nreal;
     T mu;
     Eigen::TensorMap<Eigen::Tensor<T,3, Eigen::RowMajor>> obs;
     Eigen::Matrix<T,Eigen::Dynamic,1> sig;
-    
+    Eigen::Tensor<T,1, Eigen::RowMajor> pwe;
+
     std::vector<Par<T>> Pinfo;
     std::vector<const ml::Milne<T>*> Me;
 
-    int getNreal()const{return Nreal;}
+    long getNreal()const{return Nreal;}
     
-    container(): nDat(0), ny(0), nx(0), Nreal(1), mu(1),   sig(), Pinfo(), Me(){};
+    container(): nDat(0), ny(0), nx(0), Nreal(1), mu(1),   sig(), pwe(), Pinfo(), Me(){};
 
     // ------------------------------------------------------------ //
     
-    container(int const iny, int const inx, T const iMu, int const inDat, T* const __restrict__ iobs,
+    container(long const iny, long const inx, T const iMu, long const inDat, T* const __restrict__ iobs,
 	      const T* const __restrict__ isig,
 	      std::vector<Par<T>> const& Pinfo_in, std::vector<ml::Milne<T>> const& iMe):
-      nDat(inDat), ny(iny), nx(inx), mu(iMu), obs(iobs, iny, inx, inDat), sig(nDat), Pinfo(Pinfo_in)
+      nDat(inDat), ny(iny), nx(inx), mu(iMu), obs(iobs, iny, inx, inDat), sig(nDat), pwe(inx*iny), Pinfo(Pinfo_in)
     {
 
       // --- References to Me class ---//
@@ -181,13 +182,34 @@ namespace spa{
       
       // --- sigma --- //
       Nreal = 0;
-      for(int ii=0; ii<nDat; ++ii){
-	sig[ii] = 1/isig[ii];
+      for(long ii=0; ii<nDat; ++ii){
+	sig[ii] = 1.0/isig[ii];
 
 	if(isig[ii] < 1.e10)
 	  ++Nreal;
-	
       }
+
+      // --- pixel weight --- //
+      long const npix = inx*iny;
+      long const nwav = inDat / 4;
+      double meanpwe = 0.0;
+      for(long ii = 0; ii<npix; ++ii){
+	double sum = 0.0;
+	T* const __restrict__ iI = iobs + ii*inDat;
+	for(long jj=0; jj<nwav;++jj){
+	  sum += iI[jj];
+	}
+	if(sum < 1.e-6){
+	  pwe[ii] = 1.e32;// intensity is zero, ignore pixel
+	}else{
+	  pwe[ii] = std::abs(sum / nwav);
+	  meanpwe += pwe[ii];
+	}
+      }
+
+      meanpwe /= npix;
+      pwe = (T(meanpwe) / pwe).sqrt();
+      
     }
     
     // ------------------------------------------------------------ //
@@ -196,46 +218,46 @@ namespace spa{
     
     // ------------------------------------------------------------ //
     
-    void NormalizePars(int const nPar,  T* const __restrict__ par)const
+    void NormalizePars(long const nPar,  T* const __restrict__ par)const
     {
-      int const ny1 = ny;
-      int const nx1 = nx;
+      long const ny1 = ny;
+      long const nx1 = nx;
       
-      for(int yy=0; yy<ny1; ++yy)
-	for(int xx=0; xx<nx1; ++xx)
-	  for(int pp=0; pp<nPar; ++pp)
+      for(long yy=0; yy<ny1; ++yy)
+	for(long xx=0; xx<nx1; ++xx)
+	  for(long pp=0; pp<nPar; ++pp)
 	    par[yy*nx*nPar + xx*nPar + pp] /= Pinfo[pp].scale;
     }
     
     // ------------------------------------------------------------ //
     
-    void ScalePars(int const nPar,  T* const __restrict__ par)const
+    void ScalePars(long const nPar,  T* const __restrict__ par)const
     {
-      int const ny1 = ny;
-      int const nx1 = nx;
+      long const ny1 = ny;
+      long const nx1 = nx;
       
-      for(int yy=0; yy<ny1; ++yy)
-	for(int xx=0; xx<nx1; ++xx)
-	  for(int pp=0; pp<nPar; ++pp)
+      for(long yy=0; yy<ny1; ++yy)
+	for(long xx=0; xx<nx1; ++xx)
+	  for(long pp=0; pp<nPar; ++pp)
 	    par[yy*nx*nPar + xx*nPar + pp] *= Pinfo[pp].scale;
     }
 
     // ------------------------------------------------------------ //
 
-    void checkPars(int const nPar,  T* const __restrict__ par)const
+    void checkPars(long const nPar,  T* const __restrict__ par)const
     {
-      int const ny1 = ny;
-      int const nx1 = nx;
+      long const ny1 = ny;
+      long const nx1 = nx;
       
-      for(int pp=0; pp<nPar; ++pp){
+      for(long pp=0; pp<nPar; ++pp){
 
 	if(!Pinfo[pp].limited) continue;
 	
 	T const imin = Pinfo[pp].limits[0];
 	T const imax = Pinfo[pp].limits[1];
 	
-	for(int yy=0; yy<ny1; ++yy)
-	  for(int xx=0; xx<nx1; ++xx){
+	for(long yy=0; yy<ny1; ++yy)
+	  for(long xx=0; xx<nx1; ++xx){
 	    T &iPar = par[yy*nx*nPar + xx*nPar + pp];
 	    iPar = std::min<T>(std::max<T>(iPar, imin), imax);
 	  } //xx
@@ -245,11 +267,11 @@ namespace spa{
     
     // ------------------------------------------------------------ //
 
-    void synthesize(int const nPar,  T* const __restrict__ par,  T* const __restrict__ syn,  T* const __restrict__ r)const
+    void synthesize(long const nPar,  T* const __restrict__ par,  T* const __restrict__ syn,  T* const __restrict__ r)const
     {
-      int const nthreads = Me.size(); int const npix = nx*ny;
-      int ipix = 0, tid = 0, ww= 0;
-      int const ndat = nDat;
+      int const nthreads = Me.size(); long const npix = nx*ny;
+      long ipix = 0, tid = 0, ww= 0;
+      long const ndat = nDat;
       T const scl = 1.0 / sqrt(T(Nreal*npix));
       const T* const __restrict__ o = static_cast<const T* const>(&obs(0,0,0));
 
@@ -269,11 +291,10 @@ namespace spa{
 	  Me[tid]->synthesize(&par[ipix*nPar], &syn[nDat*ipix], mu);
 
 	  for(ww=0; ww<ndat; ++ww)
-	    r[ipix*ndat + ww] = (o[ipix*ndat + ww] - syn[ipix*ndat + ww]) * sig[ww] * scl;      
+	    r[ipix*ndat + ww] = pwe[ipix]*(o[ipix*ndat + ww] - syn[ipix*ndat + ww]) * sig[ww] * scl;      
 
 	  for(ww=0; ww<nPar; ++ww)
 	    Pinfo[ww].Normalize(par[ipix*nPar + ww]);
-	  
 	}
       } // parallel block
       
@@ -282,14 +303,14 @@ namespace spa{
     
     // ------------------------------------------------------------ //
 
-    T fx(int const nPar, T* const __restrict__ par,  T* const __restrict__ syn_in, T* const __restrict__ r)const 
+    T fx(long const nPar, T* const __restrict__ par,  T* const __restrict__ syn_in, T* const __restrict__ r)const 
     {
 
       // --- Synthesize without derivatives --- //
       synthesize(nPar, par, syn_in, r);
 
       long const nEl = long(nDat)*long(nx*ny);
-      return ksum2<T,double>(nEl, r);
+      return ksum2<T,long double>(nEl, r);
     }
     
     
@@ -297,21 +318,21 @@ namespace spa{
 
     T getChi2( T* const __restrict__ r)const
     {
-      int const ndat = nDat;
-      int const npix = nx*ny;
-      int const nthreads = Me.size();
+      long const ndat = nDat;
+      long const npix = nx*ny;
+      long const nthreads = Me.size();
 
       std::vector<double> chi2(nthreads,T(0));
 
       // --- split the work in threads, each stores its own count --- //
-      int ipix=0, tid=0;
+      long ipix=0, tid=0;
 #pragma omp parallel default(shared) firstprivate(ipix, tid) num_threads(nthreads)      
       {
 	tid = omp_get_thread_num();
 #pragma omp for
 	for(ipix=0; ipix<npix; ++ipix){
 	  
-	  chi2[tid] += ksum2<T,double>(ndat, r[ipix*ndat]);
+	  chi2[tid] += ksum2<T,long double>(ndat, r[ipix*ndat]);
       
 	} // ipix
       }// parallel block
@@ -319,7 +340,7 @@ namespace spa{
       // --- add chi2 from all threads --- //
       T chitot = chi2[tid];
       
-      for(int ii=1; ii<nthreads; ++ii)
+      for(long ii=1; ii<nthreads; ++ii)
 	chitot += chi2[ii];
 
       return chitot;
@@ -327,16 +348,16 @@ namespace spa{
 
     // ------------------------------------------------------------ //
     template<typename iType = long>
-    Eigen::Matrix<T,Eigen::Dynamic,1> getGamma(int const npar, T* const __restrict__ par)const
+    Eigen::Matrix<T,Eigen::Dynamic,1> getGamma(long const npar, T* const __restrict__ par)const
     {
-      int const nthreads = Me.size();
-      iType const npix = nx*ny;
+      long const nthreads = Me.size();
+      iType const npix = long(nx)*long(ny);
       iType const ndat = nDat;
       
       // --- how many penalty functions do we need? Npixels-1 have penalties, (0,0) doesn't ---//
 
 
-      int const nPen = 2*npix*npar; //
+      long const nPen = 2*npix*npar; //
       T const sqr_nPen = sqrt(T(nPen));
       Eigen::Matrix<T,Eigen::Dynamic,1> Gam(nPen); Gam.setZero();
       Eigen::TensorMap<Eigen::Tensor<T,3,Eigen::RowMajor>> m(par, ny, nx, npar);
@@ -345,10 +366,10 @@ namespace spa{
       // --- Scaling factors are sqrt-ed so when squared we get the right number --- //
       
       T* const  __restrict__ sq_alpha = new T [npar]();
-      for(int ii=0; ii<npar; ++ii) sq_alpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
+      for(long ii=0; ii<npar; ++ii) sq_alpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
       
       
-      int ipix=0, tid=0, xx=0, yy=0, pp=0;
+      long ipix=0, tid=0, xx=0, yy=0, pp=0;
 #pragma omp parallel default(shared) firstprivate(ipix, tid, xx, yy, pp) num_threads(nthreads)      
       {
 	tid = omp_get_thread_num();
@@ -390,17 +411,17 @@ for(ipix=1; ipix<npix; ++ipix){
     
     // ------------------------------------------------------------ //
     
-    void synthesize_der_one(int const npar, T* __restrict__ par, T* __restrict__ r,
-			    T* __restrict__ J, int const tid, int const ipix)const
+    void synthesize_der_one(long const npar, T* __restrict__ par, T* __restrict__ r,
+			    T* __restrict__ J, long const tid, long const ipix)const
     {
 
       T const scl = sqrt(T(Nreal)*T(nx*ny));
       T iScl = 0;
-      int const ndat = nDat;
+      long const ndat = nDat;
 
       const T* const __restrict__ o = static_cast<const T* const>(&obs(0,0,0));
       
-      for(int pp=0; pp<npar; ++pp){
+      for(long pp=0; pp<npar; ++pp){
 	Pinfo[pp].Scale(par[pp]);
 	//Pinfo[pp].Check(par[pp]);
       }
@@ -408,15 +429,15 @@ for(ipix=1; ipix<npix; ++ipix){
       Me[tid]->synthesize_rf(par, r, J, mu);
       
       
-      for(int ww=0; ww<ndat; ++ww)
-	r[ww] = (o[ipix*ndat+ww] - r[ww]) * sig[ww] / scl;  
+      for(long ww=0; ww<ndat; ++ww)
+	r[ww] = pwe[ipix]*((o[ipix*ndat+ww] - r[ww]) * sig[ww] / scl);  
       
 	  
       // --- scale J and compute r--- //
-      for(int pp=0; pp<npar; ++pp){
-	iScl = Pinfo[pp].scale / scl;
+      for(long pp=0; pp<npar; ++pp){
+	iScl =  pwe[ipix] * Pinfo[pp].scale / scl;
 	
-	for(int ww=0; ww<ndat; ++ww)
+	for(long ww=0; ww<ndat; ++ww)
 	  J[pp*ndat+ww] *= iScl * sig[ww];
 	
 	Pinfo[pp].Normalize(par[pp]);
@@ -427,20 +448,20 @@ for(ipix=1; ipix<npix; ++ipix){
     
     // ------------------------------------------------------------ //
 
-    T fx_dx(int const nPar,  T* const __restrict__ par,  T* const __restrict__ syn_in,  T* const __restrict__ r,
+    T fx_dx(long const nPar,  T* const __restrict__ par,  T* const __restrict__ syn_in,  T* const __restrict__ r,
 	    T* const __restrict__ J)const 
     {
       
       synthesize_rf(nPar, par, syn_in, r, J);
       
       long const nEl = long(nDat)*long(nx*ny);
-      return ksum2<T,double>(nEl, r);
+      return ksum2<T,long double>(nEl, r);
     }
     
     // ------------------------------------------------------------ //
 
     template<typename iType = long>
-    Eigen::SparseMatrix<T, Eigen::RowMajor, iType> get_L(int const npar,  T* const __restrict__ par)const
+    Eigen::SparseMatrix<T, Eigen::RowMajor, iType> get_L(long const npar,  T* const __restrict__ par)const
     {
 
       iType const npix = nx*ny;
@@ -453,34 +474,34 @@ for(ipix=1; ipix<npix; ++ipix){
       iType const nPen = npix*2*npar;
       T const sqr_nPen = sqrt(T(nPen));
       std::vector<T> iAlpha(npar, T(0));
-      for(int ii=0;ii<npar; ++ii) iAlpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
+      for(long ii=0;ii<npar; ++ii) iAlpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
       
       // --- get matrix dimensions --- //
 
-      int const nrows = 2*npar*npix;
-      int const ncols = npix*npar;
+      long const nrows = 2*npar*npix;
+      long const ncols = npix*npar;
 
       Eigen::SparseMatrix<T,Eigen::RowMajor, iType> L(nrows, ncols);
 
       
       // --- Get number of elements per row --- //
 
-      int const Elements_per_row = 2;
+      long const Elements_per_row = 2;
       Eigen::VectorXi nElements_per_row = Eigen::VectorXi::Constant(2*npix*npar, Elements_per_row); // 1D vector of integers
 
 
 
       // --- correct numbers for first column and first row --- //
       
-      for(int pp=0; pp<npar; ++pp){
+      for(long pp=0; pp<npar; ++pp){
 	
-	for(int yy = 0; yy<Ny; ++yy){
-	  int const iPix = (yy*nx + 0);
+	for(long yy = 0; yy<Ny; ++yy){
+	  long const iPix = (yy*nx + 0);
 	  nElements_per_row[2*iPix * npar + 2*pp+1] = 0;
 	} // yy
 	
-	for(int xx = 0; xx<Nx; ++xx){
-	  int const iPix = (0*Nx + xx);
+	for(long xx = 0; xx<Nx; ++xx){
+	  long const iPix = (0*Nx + xx);
 	  nElements_per_row[2*iPix * npar + 2*pp ] = 0;
 	} // xx
 

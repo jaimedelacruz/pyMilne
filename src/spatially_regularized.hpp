@@ -27,6 +27,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
+#include <unsupported/Eigen/IterativeSolvers>
 
 namespace spa{
 
@@ -45,7 +46,7 @@ namespace spa{
     Eigen::SparseMatrix<T,Eigen::RowMajor, iType> LL;
     
   public:
-    lms(int const inpar, int const iny, int const inx):
+    lms(long const inpar, long const iny, long const inx):
       npar(inpar), ny(iny), nx(inx),  A(), B(){};
         
     // ------------------------------------------------------------ //
@@ -55,14 +56,14 @@ namespace spa{
 
     // ------------------------------------------------------------ //
 
-    inline static T get_one_JJ(int const ndat, const T* const __restrict__ Jy, const T* const __restrict__ Jx)
+    inline static T get_one_JJ(long const ndat, const T* const __restrict__ Jy, const T* const __restrict__ Jx)
     {
-      return static_cast<T>(ksumMult<T,double>(ndat, Jy, Jx));
+      return static_cast<T>(ksumMult<T,long double>(ndat, Jy, Jx));
     }
     
     // ------------------------------------------------------------ //
 
-    void construct_system(int const npar, container<T> const& cont, T* const __restrict__ m, 
+    void construct_system(long const npar, container<T> const& cont, T* const __restrict__ m, 
 			  T* const __restrict__ r,  Eigen::Matrix<T,Eigen::Dynamic,1> const& Reg_RHS)
     {
 
@@ -107,7 +108,7 @@ namespace spa{
 
 	    // --- RHS of the equation --- //
 	    
-	    B[ipix*npar+jj] = ksumMult<T,double>(ndat, &iJ[jj*ndat], &r[ipix*ndat]) - Reg_RHS[ipix*npar+jj];
+	    B[ipix*npar+jj] = ksumMult<T,long double>(ndat, &iJ[jj*ndat], &r[ipix*ndat]) - Reg_RHS[ipix*npar+jj];
 	    
 	    for(ii=0; ii<=jj;++ii){
 
@@ -136,7 +137,7 @@ namespace spa{
     // ------------------------------------------------------------ //
 
     Chi2<T> getCorrection(container<T> const& cont, T* const __restrict__ m,
-			  T* const __restrict__ syn, T* const __restrict__ r, T iLam, int const method)const 
+			  T* const __restrict__ syn, T* const __restrict__ r, T const iLam, int const method)const 
     {
 
 
@@ -149,8 +150,9 @@ namespace spa{
       // --- damp diagonal and get correction --- //
       
       iType const nDiag = iType(npar)*iType(npix);
+      T const one_ilam = 1.0 + iLam;
       for(iType kk =0; kk<nDiag; ++kk)
-	Atot.coeffRef(kk,kk) *= (1+iLam);
+	Atot.coeffRef(kk,kk) *= one_ilam;
 
       Eigen::Matrix<T,Eigen::Dynamic,1> dx;
       
@@ -165,7 +167,11 @@ namespace spa{
       }else if(method == 2){
 	Eigen::SparseLU<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
 	dx = solver.solve(B);
+      }else{
+	Eigen::GMRES<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	dx = solver.solve(B);
       }
+   
 
       
       // --- Check corrections --- //
@@ -184,7 +190,7 @@ namespace spa{
       cont.fx(npar, m, syn, &rnew[0]);
       Eigen::Matrix<T, Eigen::Dynamic, 1> Gam = cont.getGamma(npar, m);
       
-      Chi2<T> chi2(ksum2<T,double>(npix*ndat, &rnew[0]), ksum2<T,double>(Gam.size(), &Gam[0]));
+      Chi2<T> chi2(ksum2<T,long double>(npix*ndat, &rnew[0]), ksum2<T,long double>(Gam.size(), &Gam[0]));
       
       return chi2;
     }
@@ -205,7 +211,7 @@ namespace spa{
 
 	// --- Bracketing optimal lambda value --- //
 	
-	int const npix = cont.nx*cont.ny;
+	iType const npix = cont.nx*cont.ny;
 	std::vector<Chi2<T>> iChi2;
 	std::vector<T> Lambdas;
 
@@ -261,7 +267,7 @@ namespace spa{
 	    
 	  }// while
 	}
-	
+
 	input_model = bestModel;
 	iLam = Lambdas[idx];
 	return iChi2[idx];
@@ -273,14 +279,14 @@ namespace spa{
 
     T fitData(container<T> const& cont, int const npar, T* __restrict__ bestModel,
 	      T* __restrict__ bestSyn, int const max_iter = 20, T iLam = 10,
-	      T const Chi2_thres = 1.0, T const fx_thres = 2.e-3, int const delay_braket = 2,
+	      T const Chi2_thres = 1.0, T const fx_thres = 1.e-3, int const delay_braket = 2,
 	      bool verbose = true, int const method = 0)
     {
       int const nthreads = int(cont.Me.size());
       Eigen::initParallel();
       Eigen::setNbThreads(nthreads);
 
-      static constexpr T const facLam = 3.1622776601683795;
+      static constexpr T const facLam = 2.0;
       static constexpr T const maxLam = 1000.;
       static constexpr T const minLam =  3.1622776601683795e-3;
       static constexpr int const max_n_reject = 6;
@@ -328,7 +334,7 @@ namespace spa{
       // --- Init total Chi2 --- //
       {
 	Eigen::Matrix<T, Eigen::Dynamic, 1> Gam = cont.getGamma(npar, m);
-	bestChi2 = Chi2<T>(ksum2<T,double>(npix*ndat, r), ksum2<T,double>(Gam.size(), &Gam[0]));
+	bestChi2 = Chi2<T>(ksum2<T,long double>(npix*ndat, r), ksum2<T,long double>(Gam.size(), &Gam[0]));
 	Reg_RHS = L.transpose()*Gam; // Init RHS regularization term. Vector that only needs to be computed once per successfull iteration.
       }
 
@@ -445,11 +451,8 @@ namespace spa{
 	// --- init next iteration --- //
 	
 	std::memcpy(m, bestModel, npix*npar*sizeof(T));
+	Reg_RHS = L.transpose()*cont.getGamma(npar, m);
 	
-	{
-	  Eigen::Matrix<T, Eigen::Dynamic, 1> Gam = cont.getGamma(npar, m);
-	  Reg_RHS = L.transpose()*Gam;
-	}
 
 
 	// --- Construct sparse matrix with the new model estimate --- //

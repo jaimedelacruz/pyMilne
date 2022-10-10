@@ -47,18 +47,18 @@ ctypedef Milne[float] Milnef
 
 
 cdef extern from "wrapper_tools.hpp" namespace "wr":
-    cdef void SynManyd "wr::SynMany<double>"(vector[Milne[double]]& ME, const double* m, double* stokes, int ny, int nx, double mu)
-    cdef void SynManyRFd "wr::SynManyRF<double>"(vector[Milne[double]]& ME, const double* m, double* stokes, double* rf, int ny, int nx, double mu)
-    cdef void InvertManyd "wr::InvertMany<double>"(vector[Milne[double]]& ME, double* m, double* stokes, double* obs, double* sig, double* chi2, int ny, int nx, int nDat, int nRandom, int niter, double chi2_thres, double mu, bool verbose)
+    cdef void SynManyd "wr::SynMany<double>"(vector[Milne[double]]& ME, const double* m, double* stokes, long ny, long nx, double mu)
+    cdef void SynManyRFd "wr::SynManyRF<double>"(vector[Milne[double]]& ME, const double* m, double* stokes, double* rf, long ny, long nx, double mu)
+    cdef void InvertManyd "wr::InvertMany<double>"(vector[Milne[double]]& ME, double* m, double* stokes, double* obs, double* sig, double* chi2, long ny, long nx, long nDat, int nRandom, int niter, double chi2_thres, double mu, bool verbose)
 
-    cdef void SynManyf "wr::SynMany<float>"(vector[Milne[float]]& ME, const float* m, float* stokes, int ny, int nx, float mu)
-    cdef void SynManyRFf "wr::SynManyRF<float>"(vector[Milne[float]]& ME, const float* m, float* stokes, float* rf, int ny, int nx, float mu)
-    cdef void InvertManyf "wr::InvertMany<float>"(vector[Milne[float]]& ME, float* m, float* stokes, float* obs, float* sig, float* chi2, int ny, int nx, int nDat, int nRandom, int niter, float chi2_thres, float mu, bool verbose)
+    cdef void SynManyf "wr::SynMany<float>"(vector[Milne[float]]& ME, const float* m, float* stokes, long ny, long nx, float mu)
+    cdef void SynManyRFf "wr::SynManyRF<float>"(vector[Milne[float]]& ME, const float* m, float* stokes, float* rf, long ny, long nx, float mu)
+    cdef void InvertManyf "wr::InvertMany<float>"(vector[Milne[float]]& ME, float* m, float* stokes, float* obs, float* sig, float* chi2, long ny, long nx, long nDat, int nRandom, int niter, float chi2_thres, float mu, bool verbose)
 
     
-    cdef float invert_spatially_regularized_float "wr::invert_spatially_regularized<float>"(int ny, int nx, int  ndat, vector[Milne[float]] &ME,  float*  m, float* obs, float* syn, float*  sig, int method, int nIter, float chi2_thres, float  mu, float iLam,  float*  alphas, int  delay_bracket)
+    cdef float invert_spatially_regularized_float "wr::invert_spatially_regularized<float>"(long ny, long nx, long  ndat, vector[Milne[float]] &ME,  float*  m, float* obs, float* syn, float*  sig, int method, int nIter, float chi2_thres, float  mu, float iLam,  float*  alphas, int  delay_bracket)
     
-    cdef double invert_spatially_regularized_double "wr::invert_spatially_regularized<double>"(int ny, int nx, int  ndat, vector[Milne[double]] &ME,  double*  m, double* obs, double* syn, double*  sig, int method, int nIter, double chi2_thres, double  mu, double iLam,  double*  alphas, int delay_bracket)
+    cdef double invert_spatially_regularized_double "wr::invert_spatially_regularized<double>"(long ny, long nx, long  ndat, vector[Milne[double]] &ME,  double*  m, double* obs, double* syn, double*  sig, int method, int nIter, double chi2_thres, double  mu, double iLam,  double*  alphas, int delay_bracket)
 #
 # Wrapper cython classes
 #
@@ -261,11 +261,11 @@ cdef class pyMilne:
 
     def synthesize(self, ar[double,ndim=3] m, double mu = 1.0):
 
-        cdef int nWav = self.Me[0].get_number_of_wavelength()
+        cdef long nWav = self.Me[0].get_number_of_wavelength()
         
-        cdef int ny   = m.shape[0]
-        cdef int nx   = m.shape[1]
-        cdef int npar = m.shape[2]
+        cdef long ny   = m.shape[0]
+        cdef long nx   = m.shape[1]
+        cdef long npar = m.shape[2]
 
         
         cdef ar[double,ndim=4] Stokes = zeros((ny,nx,4,nWav), dtype='float64', order='c')
@@ -280,11 +280,11 @@ cdef class pyMilne:
     
     def synthesize_RF(self, ar[double,ndim=3] m, double mu = 1.0):
 
-        cdef int nWav = self.Me[0].get_number_of_wavelength()
+        cdef long nWav = self.Me[0].get_number_of_wavelength()
         
-        cdef int ny   = m.shape[0]
-        cdef int nx   = m.shape[1]
-        cdef int npar = m.shape[2]
+        cdef long ny   = m.shape[0]
+        cdef long nx   = m.shape[1]
+        cdef long npar = m.shape[2]
 
         
         cdef ar[double,ndim=4] Stokes = zeros((ny,nx,4,nWav), dtype='float64', order='c')
@@ -303,12 +303,12 @@ cdef class pyMilne:
         #
         # Dimensions
         #
-        cdef int ny = m.shape[0]
-        cdef int nx = m.shape[1]
-        cdef int npar = m.shape[2]
-        cdef int nwav = obs.shape[3]
-        cdef int nwav1= self.Me[0].get_number_of_wavelength()
-        cdef int nDat = nwav*4
+        cdef long ny = m.shape[0]
+        cdef long nx = m.shape[1]
+        cdef long npar = m.shape[2]
+        cdef long nwav = obs.shape[3]
+        cdef long nwav1= self.Me[0].get_number_of_wavelength()
+        cdef long nDat = nwav*4
         
         #
         # Init output arrays 
@@ -351,12 +351,12 @@ cdef class pyMilne:
         #
         # Dimensions
         #
-        cdef int ny = m.shape[0]
-        cdef int nx = m.shape[1]
-        cdef int npar = m.shape[2]
-        cdef int nwav = obs.shape[3]
-        cdef int nwav1= self.Me[0].get_number_of_wavelength()
-        cdef int nDat = nwav*4
+        cdef long ny = m.shape[0]
+        cdef long nx = m.shape[1]
+        cdef long npar = m.shape[2]
+        cdef long nwav = obs.shape[3]
+        cdef long nwav1= self.Me[0].get_number_of_wavelength()
+        cdef long nDat = nwav*4
         
         #
         # Init output arrays 
@@ -468,9 +468,9 @@ cdef class pyMilne_float:
 
         cdef int nWav = self.Me[0].get_number_of_wavelength()
         
-        cdef int ny   = m.shape[0]
-        cdef int nx   = m.shape[1]
-        cdef int npar = m.shape[2]
+        cdef long ny   = m.shape[0]
+        cdef long nx   = m.shape[1]
+        cdef long npar = m.shape[2]
 
         
         cdef ar[float,ndim=4] Stokes = zeros((ny,nx,4,nWav), dtype='float32', order='c')
@@ -485,11 +485,11 @@ cdef class pyMilne_float:
     
     def synthesize_RF(self, ar[float,ndim=3] m, float mu = 1.0):
 
-        cdef int nWav = self.Me[0].get_number_of_wavelength()
+        cdef long nWav = self.Me[0].get_number_of_wavelength()
         
-        cdef int ny   = m.shape[0]
-        cdef int nx   = m.shape[1]
-        cdef int npar = m.shape[2]
+        cdef long ny   = m.shape[0]
+        cdef long nx   = m.shape[1]
+        cdef long npar = m.shape[2]
 
         
         cdef ar[float,ndim=4] Stokes = zeros((ny,nx,4,nWav), dtype='float32', order='c')
@@ -508,12 +508,12 @@ cdef class pyMilne_float:
         #
         # Dimensions
         #
-        cdef int ny = m.shape[0]
-        cdef int nx = m.shape[1]
-        cdef int npar = m.shape[2]
-        cdef int nwav = obs.shape[3]
-        cdef int nwav1= self.Me[0].get_number_of_wavelength()
-        cdef int nDat = nwav*4
+        cdef long ny = m.shape[0]
+        cdef long nx = m.shape[1]
+        cdef long npar = m.shape[2]
+        cdef long nwav = obs.shape[3]
+        cdef long nwav1= self.Me[0].get_number_of_wavelength()
+        cdef long nDat = nwav*4
         
         #
         # Init output arrays 
@@ -555,12 +555,12 @@ cdef class pyMilne_float:
         #
         # Dimensions
         #
-        cdef int ny = m.shape[0]
-        cdef int nx = m.shape[1]
-        cdef int npar = m.shape[2]
-        cdef int nwav = obs.shape[3]
-        cdef int nwav1= self.Me[0].get_number_of_wavelength()
-        cdef int nDat = nwav*4
+        cdef long ny = m.shape[0]
+        cdef long nx = m.shape[1]
+        cdef long npar = m.shape[2]
+        cdef long nwav = obs.shape[3]
+        cdef long nwav1= self.Me[0].get_number_of_wavelength()
+        cdef long nDat = nwav*4
         
         #
         # Init output arrays 
