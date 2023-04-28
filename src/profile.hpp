@@ -1,13 +1,16 @@
 #ifndef PROFILEHPP
 #define PROFILEHPP
 
-#include <complex>
+//#include <complex>
 #include <algorithm>
 #include <cmath>
+#include "myComplex.hpp"
 
 //#include "physical_constants.hpp"
 
 namespace pr{
+
+  using namespace mth; // replace by std if you want to use std::complex
   
   template<typename T> constexpr inline T S(T const& v){return static_cast<T>(v);}
 
@@ -25,9 +28,9 @@ inline T vf(T const& damp, T const& vv,  T &F)
   constexpr static const T B[7] = {122.60793177387535, 352.730625110963558, 457.334478783897737, 
 				   348.703917719495792, 170.354001821091472, 53.992906912940207, 10.479857114260399};
   
-  std::complex<T> const Z(damp, -std::abs<T>(vv));
+  complex<T> const Z(damp, -std::abs<T>(vv));
     
-  std::complex<T> const Z1 = ((((((A[6]*Z+A[5])*Z+A[4])*Z+A[3])*Z+A[2])*Z+A[1])*Z+A[0]) /
+  complex<T> const Z1 = ((((((A[6]*Z+A[5])*Z+A[4])*Z+A[3])*Z+A[2])*Z+A[1])*Z+A[0]) /
     (((((((Z+B[6])*Z+B[5])*Z+B[4])*Z+B[3])*Z+B[2])*Z+B[1])*Z+B[0]);
   
   
@@ -40,13 +43,13 @@ inline T vf(T const& damp, T const& vv,  T &F)
   // ---------------------------------------------------------------------------------------- //
 
   template<typename T>
-  inline T voigt_complex(T const& a, T const& v, T &far)
+  inline T voigt_complex(T const a, T const v, T &far)
   {
       
     T const sav = std::abs<T>(v) + a;
-    std::complex<T> tav(a, -v);
-    std::complex<T> uav = tav*tav;
-    std::complex<T> w4;
+    complex<T> const tav(a, -v);
+    complex<T> const uav = tav*tav;
+    complex<T> w4;
 
 
     
@@ -60,13 +63,13 @@ inline T vf(T const& damp, T const& vv,  T &F)
     } else{
       w4 = tav * (static_cast<T>(36183.31) - uav * (static_cast<T>(3321.9905) - uav * (static_cast<T>(1540.787) -  uav * (static_cast<T>(219.0313) - uav * (static_cast<T>(35.76683) - uav * (static_cast<T>(1.320522) - uav * static_cast<T>(0.56419)))))));
       
-      std::complex<T> const v4 = (static_cast<T>(32066.6) - uav * (static_cast<T>(24322.84) - uav * (static_cast<T>(9022.228) -  uav * (static_cast<T>(2186.181) - uav * (static_cast<T>(364.2191) - uav * (static_cast<T>(61.57037) - uav * (static_cast<T>(1.841439) - uav)))))));
+      complex<T> const v4 = (static_cast<T>(32066.6) - uav * (static_cast<T>(24322.84) - uav * (static_cast<T>(9022.228) -  uav * (static_cast<T>(2186.181) - uav * (static_cast<T>(364.2191) - uav * (static_cast<T>(61.57037) - uav * (static_cast<T>(1.841439) - uav)))))));
       w4 = exp(uav) - w4 / v4;
     }
     
     /* ---  Note that FVGT below is in fact 2 * (Faradey-Voigt function) ---*/
     
-    far = w4.imag()/2;
+    far = w4.imag()*T(0.5);
 
     return w4.real();
   }
