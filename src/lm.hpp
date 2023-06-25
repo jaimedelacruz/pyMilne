@@ -322,8 +322,8 @@ namespace lm{
       using Mat = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
       using Vec = Eigen::Matrix<T, Eigen::Dynamic, 1>;
       
-      using cVecMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>>;
-      using cMatMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
+      //using cVecMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>>;
+      //using cMatMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
 
       // --- Define some quantities --- //
@@ -333,7 +333,6 @@ namespace lm{
 
       Mat A(cPar, cPar); A.setZero();
       Vec B(cPar); B.setZero();
-      //Vec dm(cPar); dm.setZero();
       
       
       // --- get Hessian matrix --- //
@@ -357,26 +356,26 @@ namespace lm{
 	B[jj] = static_cast<T>(sum); 
 	
 	
-	A(jj,jj) *= 1+iLam;
+	A(jj,jj) *= 1.0+iLam;
       } // jj
 
       
       // --- Solve linear system to get solution --- //
       
       //Eigen::BDCSVD<Mat> sy(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
-      //Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
+      Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
       //sy.setThreshold(1.e-14);
       
-      //dm = sy.solve(B);
+      Vec dm = sy.solve(B);
       //dm = B;
-      SolveLinearGauss(A, B);
+      //SolveLinearGauss(A, B);
       
       
       
       // --- add to model and check parameters --- //
 
       for(int ii =0; ii<cPar; ++ii){
-	m[ii] += B[ii];
+	m[ii] += dm[ii];
 	Pinfo[ii].CheckNormalized(m[ii]);
       }   
       
