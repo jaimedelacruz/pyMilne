@@ -152,7 +152,7 @@ namespace mfft{
       
       /* --- take the conjugate --- */
 
-      for(int ii=0; ii<nft; ++ii) otf[ii] = std::conj(otf[ii]);
+      for(size_t ii=0; ii<nft; ++ii) otf[ii] = std::conj(otf[ii]);
 
       
 

@@ -322,9 +322,6 @@ namespace lm{
       using Mat = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
       using Vec = Eigen::Matrix<T, Eigen::Dynamic, 1>;
       
-      //using cVecMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>>;
-      //using cMatMap = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-
 
       // --- Define some quantities --- //
 
@@ -364,7 +361,7 @@ namespace lm{
       
       //Eigen::BDCSVD<Mat> sy(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
       Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
-      //sy.setThreshold(1.e-14);
+      sy.setThreshold(1.e-9);
       
       Vec dm = sy.solve(B);
       //dm = B;
@@ -384,7 +381,9 @@ namespace lm{
     
     // ------------------------------------------------------------------------------ //
     
-    T getStep(container<T> const& myData, T* __restrict__ m, const T* __restrict__ J, T* __restrict__ syn, T* __restrict__ r, T &iLam, bool braket, T const maxLam, T const minLam)const{
+    T getStep(container<T> const& myData, T* __restrict__ m, const T* __restrict__ J,
+	      T* __restrict__ syn, T* __restrict__ r, T &iLam, bool braket, T const maxLam,
+	      T const minLam)const{
 
       // if(!braket){
 	return getCorrection(myData, m, J, syn, r, iLam);

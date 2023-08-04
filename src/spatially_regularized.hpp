@@ -70,9 +70,9 @@ namespace spa{
       iType const npix = cont.ny*cont.nx;
       iType const ndat = cont.nDat;
       iType const nthreads = cont.getNthreads();
-      iType const nx = cont.nx;
-      iType const ny = cont.ny;
-      iType const Jstride = npar*ndat;
+      //iType const nx = cont.nx;
+      //iType const ny = cont.ny;
+      //iType const Jstride = npar*ndat;
 
       
       // --- Build Sparse system --- //
@@ -83,12 +83,12 @@ namespace spa{
 
       
       T* __restrict__ iJ = NULL;
-      iType ipix=0, tid=0, pp=0, ii=0, jj=0;
+      iType ipix=0, tid=0, ii=0, jj=0;
       T iSum = 0;
 
       // --- parallel block --- //
       
-#pragma omp parallel default(shared) firstprivate(ipix, tid, iSum, pp, ii, jj, iJ) num_threads(nthreads)      
+#pragma omp parallel default(shared) firstprivate(ipix, tid, iSum, ii, jj, iJ) num_threads(nthreads)      
       {
 	
 	tid = omp_get_thread_num();
@@ -299,7 +299,7 @@ namespace spa{
       
       iType const npix = cont.ny*cont.nx;
       iType const ndat = cont.nDat;
-      iType const nJ = long(npix)*long(npar)*long(ndat);
+      //iType const nJ = long(npix)*long(npar)*long(ndat);
 
       
       T* const __restrict__ r   = new T [npix*ndat]();

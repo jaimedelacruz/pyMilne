@@ -352,7 +352,7 @@ namespace spa{
     {
       long const nthreads = Me.size();
       iType const npix = long(nx)*long(ny);
-      iType const ndat = nDat;
+      //iType const ndat = nDat;
       
       // --- how many penalty functions do we need? Npixels-1 have penalties, (0,0) doesn't ---//
 
@@ -369,10 +369,10 @@ namespace spa{
       for(long ii=0; ii<npar; ++ii) sq_alpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
       
       
-      long ipix=0, tid=0, xx=0, yy=0, pp=0;
-#pragma omp parallel default(shared) firstprivate(ipix, tid, xx, yy, pp) num_threads(nthreads)      
+      long ipix=0,  xx=0, yy=0, pp=0;
+#pragma omp parallel default(shared) firstprivate(ipix, xx, yy, pp) num_threads(nthreads)      
       {
-	tid = omp_get_thread_num();
+	//tid = omp_get_thread_num();
 #pragma omp for
 for(ipix=1; ipix<npix; ++ipix){
 	  
@@ -465,7 +465,7 @@ for(ipix=1; ipix<npix; ++ipix){
     {
 
       iType const npix = nx*ny;
-      iType const ndat = nDat;
+      //iType const ndat = nDat;
       iType const Nx = nx;
       iType const Ny = ny;
       iType const nthreads = Me.size();
@@ -519,10 +519,10 @@ for(ipix=1; ipix<npix; ++ipix){
       
       // --- Fill Matrix in parallel --- //
       
-      iType ipix=0, tid=0, xx=0, yy=0, pp=0;
-#pragma omp parallel default(shared) firstprivate(ipix, tid, xx, yy, pp) num_threads(nthreads)      
+      iType ipix=0, xx=0, yy=0, pp=0;
+#pragma omp parallel default(shared) firstprivate(ipix, xx, yy, pp) num_threads(nthreads)      
       {
-	tid = omp_get_thread_num();
+	//tid = omp_get_thread_num();
 #pragma omp for
 	for(ipix=1; ipix<npix; ++ipix){
 	  yy = ipix / nx;

@@ -171,28 +171,28 @@ namespace wr{
 
     long const nPix     = nx*ny;
     long const sStride  = 4*ME[0].get_number_of_wavelength();
-    long const rfStride = sStride*9;
+    //long const rfStride = sStride*9;
 
 
     
     // --- Parallel loop --- //
     
         
-    long ipix = 0, tid = 0, oper = -1, per = 0;
-#pragma omp parallel default(shared) firstprivate(ipix, tid) num_threads(nthreads)  
+    long oper = -1, per = 0;
+#pragma omp parallel default(shared) num_threads(nthreads)  
     {
-      tid = omp_get_thread_num();
+      long const tid = omp_get_thread_num();
 
       //
 
-#pragma omp for schedule(dynamic,2)
-      for(ipix = 0; ipix<nPix; ++ipix){
+#pragma omp for schedule(dynamic,1)
+      for(long ipix = 0; ipix<nPix; ++ipix){
 	ME[tid].checkParameters(&m[ipix*9]);	
 	bestChi2[ipix] = fitOne<T>(ME[tid], fit[tid], &m[9*ipix], &stokes_in[sStride*ipix],
 				   &obs[sStride*ipix], sig, nDat, nRandom, niter, chi2_thres, mu, verbose);
 
 	if(tid == 0){
-	  per = (ipix*100)/std::max<long>(nPix-1, 1);
+	  per = int((ipix*100.0)/std::max<double>(nPix-1.0, 1.0)+0.5);
 	  if(oper < per){
 	    oper = per;
 	    fprintf(stderr,"\rInvertMany: Processed -> %3ld%s", per,"%");
@@ -206,7 +206,7 @@ namespace wr{
   }
 
   // ********************************************************************* //
-
+  
   template<typename T>
   T invert_spatially_regularized(long const ny, long const nx, long const ndat,
 				 std::vector<ml::Milne<T>> const& ME,  T* __restrict__ m,

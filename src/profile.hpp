@@ -6,8 +6,6 @@
 #include <cmath>
 #include "myComplex.hpp"
 
-//#include "physical_constants.hpp"
-
 namespace pr{
 
   using namespace mth; // replace by std if you want to use std::complex
@@ -85,16 +83,16 @@ inline T vf(T const& damp, T const& vv,  T &F)
     // vb = split * B;
     // va = (nu0 * vlos) / phyc::CC<T>;
 
-    if(damp > 1.e-3f){
+    // if(damp > 1.e-3f){
       // --- Hui's vectorized function --- //
-      for(int ii=0; ii<nWav; ++ii)
-    	H[ii] = vf<T>(damp, (static_cast<T>(wav[ii]-wav0) - va + vb)/dlnu, F[ii]);
-    }else{
-      // --- Humlicek's approximation (slower) --- //
-      for(int ii=0; ii<nWav; ++ii){
-	H[ii] = voigt_complex<T>(damp, (static_cast<T>(wav[ii]-wav0 - va  + vb))/dlnu, F[ii]);
-      }
+    // for(int ii=0; ii<nWav; ++ii)
+    //H[ii] = vf<T>(damp, (static_cast<T>(wav[ii]-wav0) - va + vb)/dlnu, F[ii]);
+    //}else{
+    // --- Humlicek's approximation (slower) --- //
+    for(int ii=0; ii<nWav; ++ii){
+      H[ii] = voigt_complex<T>(damp, (static_cast<T>(wav[ii]-wav0 - va  + vb))/dlnu, F[ii]);
     }
+    //}
     
     for(int ii=0; ii<nWav; ++ii){
       H[ii] *= str;
@@ -104,11 +102,8 @@ inline T vf(T const& damp, T const& vv,  T &F)
     
   }
     // ---------------------------------------------------------------------------------------- //
-
-  
-  
-  
-};
+ 
+}
 
 #endif
 

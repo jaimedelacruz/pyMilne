@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     regions = [[iw1 + 6302.4931,tr1/tr1.sum()], [iw2 + 6302.4931, tr2/tr2.sum()]]
     lines = [6301,6302]
-    me = ME.MilneEddington(regions, lines, nthreads=8, precision=dtype)
+    me = ME.MilneEddington(regions, lines, nthreads=32, precision=dtype)
 
 
     #
@@ -169,8 +169,8 @@ if __name__ == "__main__":
     # Correct velocities for cavity error map from CRISP
     #
     mo[:,:,3] += l.cmap+0.45 # The 0.45 is a global offset that seems to make the umbra at rest
-
-
+    
+    
     
     #
     # make plots

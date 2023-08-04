@@ -61,7 +61,7 @@ class MilneEddington:
     
     # *************************************************************************************************
 
-    def __init__(self, regions, lines, anomalous=True, dw_lines = 20,  nthreads=1, precision = 'float32'):
+    def __init__(self, regions, lines, anomalous=True, dw_lines = 20,  nthreads=1, precision = 'float64'):
         """
         __init__ method
         
@@ -135,7 +135,7 @@ class MilneEddington:
 
             
             
-        return self.Me.synthesize(model1, mu=mu)
+        return self.Me.synthesize(model, mu=mu)
 
 
     # *************************************************************************************************
@@ -186,7 +186,7 @@ class MilneEddington:
 
             
             
-        return self.Me.synthesize_RF(model1, mu=mu)
+        return self.Me.synthesize_RF(model, mu=mu)
 
     # *************************************************************************************************
       
@@ -459,3 +459,64 @@ class MilneEddington:
         #
         return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
     
+
+    # *************************************************************************************************
+
+    def invert_spatially_coupled(self, model, spat_regions, mu = 1.0, nIter = 20, \
+                                 chi2_thres = 1.0, alpha=1.0, alphas=np.ones(9,dtype='float32'),
+                                 delay_bracket = 3, init_lambda = 10.0):
+        """
+        invert_spatially_regularized observations acquired at a given mu angle
+        Arguments:
+              model: 1D [9] or 3D array [ny,nx,9] with the parameters of the model
+       spat_regions: list of lists [[obs1,sigma1,psf1], obs2,sigma2,psf2] with the observations and their PSF
+                sig: scalar or 2D array [4,nwav] with the noise estimate
+                 mu:    heliocentric angle for the synthesis
+              nIter: maximum number of Levenberg Marquardt iterations per inversion
+         chi2_thres: stop inversion if Chi2 <= chi2_thres
+              alpha: global regularization weight that multiplies the value of "alphas" (default = 1).
+             alphas: the relative scaling of regularization weights for each parameter (default = 1).
+      delay_bracket: Delay optimal lambda bracketing for this number of iterations. Avoids taking too large steps in the initial iterations. (TODO)
+        The model parameters are: [|B| [G], inc [rad], azi [rad], vlos [km/s], vDop [\AA], eta_l, damp, S0, S1]
+
+        Returns:
+              a tuple  (spectra, response_function)
+                 spectra: 4D array [ny,nx,4,nwaw] with the emerging intensity
+                 response_function: 5D array [ny, ny, 9, 4, nwav]
+        """
+        
+        #
+        # Check guessed model properties
+        #
+        ndim = len(model.shape)
+        dtype = self._get_dtype()
+
+        if(ndim == 1):
+            model1 = np.ascontiguousarray(model.reshape((1,1,model.size)), dtype=dtype)
+        elif(ndim == 3):
+            model1 = model
+        else:
+            print("MilneEddington::invert_spatially_regularized_float: ERROR, the input model must have 1 or 3 dimensions")
+            return None, None, None
+
+        if(model1.shape[2] != 9):
+            print("MilneEddington::invert_spatially_regularized_float: ERROR, input model has npar={0}, should be 9".format(model1.shape[2]))
+            return None, None, None
+
+        isContiguous = model1.flags['C_CONTIGUOUS']
+        if(not isContiguous or model1.dtype != dtype):
+            model1 = np.ascontiguousarray(model1, dtype=dtype)
+        
+        
+        #
+        # make alphas
+        #
+        alphas_in = np.zeros(9,dtype=dtype)
+        for ii in range(9):
+            alphas_in[ii] = alpha * alphas[ii]
+
+
+        
+
+        
+        return self.Me.invert_Spatially_Coupled(model1, spat_regions, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=0, delay_bracket = delay_bracket, iLam = init_lambda)

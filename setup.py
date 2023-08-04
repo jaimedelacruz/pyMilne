@@ -1,11 +1,13 @@
-from distutils.core import setup
-from distutils.extension import Extension
+#from distutils.core import setup
+from setuptools import setup
+from setuptools.extension import Extension
+#from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import os
 import numpy
-from distutils import sysconfig
+#from distutils import sysconfig
 #import numpy.distutils.intelccompiler
-import numpy.distutils.ccompiler
+#import numpy.distutils.ccompiler
 import platform as plt
 import sys
 import pathlib
@@ -16,10 +18,10 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 
 if(plt.system() == 'Darwin'):
-    #root_dir = '/opt/local/'
+    root_dir = '/opt/local/' # using this one if macports are installed
     CC = 'clang'
     CXX= 'clang++'
-    link_opts = ["-stdlib=libc++","-bundle","-undefined","dynamic_lookup", "-fopenmp"]
+    link_opts = ["-stdlib=libc++","-bundle","-undefined","dynamic_lookup", "-fopenmp","-lgomp"]
 else:
     #root_dir = '/usr/'
     CC = 'gcc'
@@ -29,42 +31,29 @@ else:
 os.environ["CC"] = CC
 os.environ["CXX"] = CXX
 
-from distutils import sysconfig
-sysconfig.get_config_vars()['CFLAGS'] = ''
-sysconfig.get_config_vars()['OPT'] = ''
-sysconfig.get_config_vars()['PY_CFLAGS'] = ''
-sysconfig.get_config_vars()['PY_CORE_CFLAGS'] = ''
-sysconfig.get_config_vars()['CC'] =  CC
-sysconfig.get_config_vars()['CXX'] = CXX
-sysconfig.get_config_vars()['BASECFLAGS'] = ''
-sysconfig.get_config_vars()['CCSHARED'] = ''
-sysconfig.get_config_vars()['LDSHARED'] = CC
-sysconfig.get_config_vars()['CPP'] = CXX
-sysconfig.get_config_vars()['CPPFLAGS'] = ''
-sysconfig.get_config_vars()['BLDSHARED'] = ''
-sysconfig.get_config_vars()['CONFIGURE_LDFLAGS'] = ''
-sysconfig.get_config_vars()['LDFLAGS'] = ''
-sysconfig.get_config_vars()['PY_LDFLAGS'] = ''
 
+# Optimization flags. With M-processor Macs remove the -march=native!
 
+comp_flags=['-O3', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",'-mprefer-vector-width=256', '-DNDEBUG', '-pedantic', '-Wall']
 
-comp_flags=['-Ofast','-std=c++14','-march=native','-fPIC','-fopenmp', '-I./src', '-DNDEBUG']
 
 extension = Extension("pyMilne",
-                      sources=["pyMilne.pyx"], 
-                      include_dirs=["./",numpy.get_include(), './eigen3'],
+                      sources=["pyMilne.pyx", "src/wrapper_tools_spatially_coupled.cpp", "src/lm_sc.cpp", \
+                               "src/spatially_coupled_helper.cpp"], 
+                      include_dirs=["./",numpy.get_include(), './eigen3', root_dir+"/include/"],
                       language="c++",
                       extra_compile_args=comp_flags,
-                      extra_link_args=link_opts,
-                      library_dirs=['./'],
+                      extra_link_args=comp_flags+link_opts,
+                      library_dirs=['./',"/usr/lib/"],
                       libraries=['fftw3'])
+#                      undef_macros = [ "NDEBUG" ])
 
 extension.cython_directives = {'language_level': "3"}
 
 setup(
     name = 'pyMilne',
-    version = '1.0',
-    author = 'J. de la Cruz Rodriguez (ISP-SU 2020)',
+    version = '2.0',
+    author = 'J. de la Cruz Rodriguez (ISP-SU 2018 - 2023)',
     ext_modules=[extension],
     cmdclass = {'build_ext': build_ext}
 )

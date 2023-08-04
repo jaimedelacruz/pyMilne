@@ -47,7 +47,7 @@ if __name__ == "__main__":
     #
     # Decide to work in float32 or float64
     #
-    dtype = 'float32'
+    dtype = 'float64'
     
     #
     # Load data, wavelength array and cmap
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     regions = [[iw1 + 6302.4931,tr1/tr1.sum()], [iw2 + 6302.4931, tr2/tr2.sum()]]
     lines = [6301,6302]
-    me = ME.MilneEddington(regions, lines, nthreads=8, precision=dtype)
+    me = ME.MilneEddington(regions, lines, nthreads=256, precision=dtype)
 
 
     #
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # Run a first cycle with 4 inversions of each pixel (1 + 3 randomizations)
     # 
     t0 = time.time()
-    mo, syn, chi2 = me.invert_spatially_regularized(Imodel, obs, sig,  nIter=25, chi2_thres=1.0, mu=0.93, alpha=30., alphas = np.float32([1,1,1,0.01,0.1, 1.0, 0.1, 0.1, 0.1 ]), method=1, delay_bracket=3)
+    mo, syn, chi2 = me.invert_spatially_regularized(Imodel, obs, sig,  nIter=25, chi2_thres=1.0, mu=0.93, alpha=30., alphas = np.float32([2,0.5,2,0.01,0.1, 0.01, 0.1, 0.01, 0.01 ]), method=1, delay_bracket=3)
     t1 = time.time()
     print("dT = {0}s -> <Chi2> (including regularization) = {1}".format(t1-t0, chi2))
 

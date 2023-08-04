@@ -20,7 +20,7 @@ namespace ml{
   // ******************************************************************************************* //
 
   template<typename T>
-  void compute_K(int const nWav, const double* __restrict__ wav, T* __restrict__ buff, T const B,
+  void compute_K(int const nWav, const double* __restrict__ wav, T* const __restrict__ buff, T const B,
 		     T const inc, T const azi, T const vl, T const vD, T const eta, T const dam,
 		     std::vector<ln::line<T>> const& lines, T const sinin, T const cosin, T const sin2az,
 		     T const cos2az)
@@ -31,19 +31,19 @@ namespace ml{
 
     // --- Init pointers to buffer --- //
     
-    T* __restrict__ Ki = &buff[0*nWav];
-    T* __restrict__ Kq = &buff[1*nWav];
-    T* __restrict__ Ku = &buff[2*nWav];
-    T* __restrict__ Kv = &buff[3*nWav];
-    T* __restrict__ Fq = &buff[4*nWav];
-    T* __restrict__ Fu = &buff[5*nWav];
-    T* __restrict__ Fv = &buff[6*nWav];
+    T* const __restrict__ Ki = &buff[0*nWav];
+    T* const __restrict__ Kq = &buff[1*nWav];
+    T* const __restrict__ Ku = &buff[2*nWav];
+    T* const __restrict__ Kv = &buff[3*nWav];
+    T* const __restrict__ Fq = &buff[4*nWav];
+    T* const __restrict__ Fu = &buff[5*nWav];
+    T* const __restrict__ Fv = &buff[6*nWav];
 
-    T* __restrict__ H  = &buff[7*nWav];
-    T* __restrict__ F  = &buff[10*nWav];
+    T* const __restrict__ H  = &buff[7*nWav];
+    T* const __restrict__ F  = &buff[10*nWav];
 
-    T* __restrict__ h  = &buff[13*nWav];
-    T* __restrict__ f  = &buff[14*nWav];
+    T* const __restrict__ h  = &buff[13*nWav];
+    T* const __restrict__ f  = &buff[14*nWav];
     
     
     // --- Add continuum contribution to Ki --- //
@@ -130,21 +130,21 @@ namespace ml{
   // ******************************************************************************************* //
 
   template<typename T>
-  void compute_Stokes(int const nWav, const T* __restrict__ buffer, T* __restrict__ out, T const S0, T const S1, T const mu)
+  void compute_Stokes(int const nWav, const T* const __restrict__ buffer, T* const __restrict__ out, T const S0, T const S1, T const mu)
   {
 
-    const T* __restrict__ ki = &buffer[0*nWav];
-    const T* __restrict__ kq = &buffer[1*nWav];
-    const T* __restrict__ ku = &buffer[2*nWav];
-    const T* __restrict__ kv = &buffer[3*nWav];
-    const T* __restrict__ fq = &buffer[4*nWav];
-    const T* __restrict__ fu = &buffer[5*nWav];
-    const T* __restrict__ fv = &buffer[6*nWav];
+    const T* const __restrict__ ki = &buffer[0*nWav];
+    const T* const __restrict__ kq = &buffer[1*nWav];
+    const T* const __restrict__ ku = &buffer[2*nWav];
+    const T* const __restrict__ kv = &buffer[3*nWav];
+    const T* const __restrict__ fq = &buffer[4*nWav];
+    const T* const __restrict__ fu = &buffer[5*nWav];
+    const T* const __restrict__ fv = &buffer[6*nWav];
 
-    T* __restrict__ I = &out[0     ];
-    T* __restrict__ Q = &out[1*nWav];
-    T* __restrict__ U = &out[2*nWav];
-    T* __restrict__ V = &out[3*nWav];
+    T* const __restrict__ I = &out[0     ];
+    T* const __restrict__ Q = &out[1*nWav];
+    T* const __restrict__ U = &out[2*nWav];
+    T* const __restrict__ V = &out[3*nWav];
 
     
     for(int ww=0; ww<nWav; ++ww){
@@ -179,7 +179,7 @@ namespace ml{
   
   template<typename T>
   void ME_Synth(std::vector<double> const &wav, std::vector<ln::line<T>> const& lines,
-		    const T* __restrict__ m, T* __restrict__ out, T const mu)
+		    const T* const __restrict__ m, T* const __restrict__ out, T const mu)
   {
 
     int const nWav = int(wav.size());
@@ -206,7 +206,7 @@ namespace ml{
     
     // --- Allocate memory buffer ---//
     
-    T* __restrict__ buff = new T [nWav*15]();
+    T* const __restrict__ buff = new T [nWav*15]();
     
 
     
@@ -256,14 +256,14 @@ namespace ml{
   // ******************************************************************************************* //
 
   template<typename T>
-  void compute_K_der(int const nWav, const double* __restrict__ wav, T* __restrict__ buff, T const B,
+  void compute_K_der(int const nWav, const double* __restrict__ wav, T* const __restrict__ buff, T const B,
 		     T const inc, T const azi, T const vl, T const vD, T const eta, T const dam,
 		     std::vector<ln::line<T>> const& lines, T const sinin, T const cosin, T const sin2az,
 		     T const cos2az)
   {
 
     T const sinin2   = sinin*sinin;
-    T const cosin2   = cosin*cosin;
+    //T const cosin2   = cosin*cosin;
     T const sinda    = 2*cos2az;
     T const cosda    = -2*sin2az;
     T const cosdi    = -sinin;
@@ -273,19 +273,19 @@ namespace ml{
     
     // --- Init pointers to buffer --- //
     
-    T* __restrict__ Ki = &buff[0*nWav];
-    T* __restrict__ Kq = &buff[1*nWav];
-    T* __restrict__ Ku = &buff[2*nWav];
-    T* __restrict__ Kv = &buff[3*nWav];
-    T* __restrict__ Fq = &buff[4*nWav];
-    T* __restrict__ Fu = &buff[5*nWav];
-    T* __restrict__ Fv = &buff[6*nWav];
+    T* const __restrict__ Ki = &buff[0*nWav];
+    T* const __restrict__ Kq = &buff[1*nWav];
+    T* const __restrict__ Ku = &buff[2*nWav];
+    T* const __restrict__ Kv = &buff[3*nWav];
+    T* const __restrict__ Fq = &buff[4*nWav];
+    T* const __restrict__ Fu = &buff[5*nWav];
+    T* const __restrict__ Fv = &buff[6*nWav];
 
-    T* __restrict__ H  = &buff[7*nWav];
-    T* __restrict__ F  = &buff[10*nWav];
+    T* const __restrict__ H  = &buff[7*nWav];
+    T* const __restrict__ F  = &buff[10*nWav];
 
-    T* __restrict__ h  = &buff[13*nWav];
-    T* __restrict__ f  = &buff[14*nWav];
+    T* const __restrict__ h  = &buff[13*nWav];
+    T* const __restrict__ f  = &buff[14*nWav];
     
     
     // --- Add continuum contribution to Ki --- //
@@ -345,15 +345,15 @@ namespace ml{
 
 	// --- Buffers for derivatives of the profile respect to B, vl, vD, dam --- //
 	{
-	  T* __restrict__ dH0 = &buff[15*nWav + iL*4*nWav         ];
-	  T* __restrict__ dH1 = &buff[15*nWav + iL*4*nWav + 1*nWav];
-	  T* __restrict__ dH2 = &buff[15*nWav + iL*4*nWav + 2*nWav];
-	  T* __restrict__ dH3 = &buff[15*nWav + iL*4*nWav + 3*nWav];
+	  T* const __restrict__ dH0 = &buff[15*nWav + iL*4*nWav         ];
+	  T* const __restrict__ dH1 = &buff[15*nWav + iL*4*nWav + 1*nWav];
+	  T* const __restrict__ dH2 = &buff[15*nWav + iL*4*nWav + 2*nWav];
+	  T* const __restrict__ dH3 = &buff[15*nWav + iL*4*nWav + 3*nWav];
 	  
-	  T* __restrict__ dF0 = &buff[15*nWav + 12*nWav + iL*4*nWav         ];
-	  T* __restrict__ dF1 = &buff[15*nWav + 12*nWav + iL*4*nWav + 1*nWav];
-	  T* __restrict__ dF2 = &buff[15*nWav + 12*nWav + iL*4*nWav + 2*nWav];
-	  T* __restrict__ dF3 = &buff[15*nWav + 12*nWav + iL*4*nWav + 3*nWav];	
+	  T* const __restrict__ dF0 = &buff[15*nWav + 12*nWav + iL*4*nWav         ];
+	  T* const __restrict__ dF1 = &buff[15*nWav + 12*nWav + iL*4*nWav + 1*nWav];
+	  T* const __restrict__ dF2 = &buff[15*nWav + 12*nWav + iL*4*nWav + 2*nWav];
+	  T* const __restrict__ dF3 = &buff[15*nWav + 12*nWav + iL*4*nWav + 3*nWav];	
 	  
 	  
 	  
@@ -398,67 +398,67 @@ namespace ml{
 
       
       int off = 15*nWav + 24*nWav;
-      T* __restrict__ dK0_dB = &buff[off];
-      T* __restrict__ dK1_dB = &buff[off+nWav];
-      T* __restrict__ dK2_dB = &buff[off+2*nWav];
-      T* __restrict__ dK3_dB = &buff[off+3*nWav];
-      T* __restrict__ dK4_dB = &buff[off+4*nWav];
-      T* __restrict__ dK5_dB = &buff[off+5*nWav];
-      T* __restrict__ dK6_dB = &buff[off+6*nWav];
+      T* const __restrict__ dK0_dB = &buff[off];
+      T* const __restrict__ dK1_dB = &buff[off+nWav];
+      T* const __restrict__ dK2_dB = &buff[off+2*nWav];
+      T* const __restrict__ dK3_dB = &buff[off+3*nWav];
+      T* const __restrict__ dK4_dB = &buff[off+4*nWav];
+      T* const __restrict__ dK5_dB = &buff[off+5*nWav];
+      T* const __restrict__ dK6_dB = &buff[off+6*nWav];
       
       off += 7*nWav;
-      T* __restrict__ dK0_dinc = &buff[off];
-      T* __restrict__ dK1_dinc = &buff[off+nWav];
-      T* __restrict__ dK2_dinc = &buff[off+2*nWav];
-      T* __restrict__ dK3_dinc = &buff[off+3*nWav];
-      T* __restrict__ dK4_dinc = &buff[off+4*nWav];
-      T* __restrict__ dK5_dinc = &buff[off+5*nWav];
-      T* __restrict__ dK6_dinc = &buff[off+6*nWav];
+      T* const __restrict__ dK0_dinc = &buff[off];
+      T* const __restrict__ dK1_dinc = &buff[off+nWav];
+      T* const __restrict__ dK2_dinc = &buff[off+2*nWav];
+      T* const __restrict__ dK3_dinc = &buff[off+3*nWav];
+      T* const __restrict__ dK4_dinc = &buff[off+4*nWav];
+      T* const __restrict__ dK5_dinc = &buff[off+5*nWav];
+      T* const __restrict__ dK6_dinc = &buff[off+6*nWav];
       
       off += 7*nWav;
-      T* __restrict__ dK0_dazi = &buff[off];
-      T* __restrict__ dK1_dazi = &buff[off+nWav];
-      T* __restrict__ dK2_dazi = &buff[off+2*nWav];
-      T* __restrict__ dK3_dazi = &buff[off+3*nWav];
-      T* __restrict__ dK4_dazi = &buff[off+4*nWav];
-      T* __restrict__ dK5_dazi = &buff[off+5*nWav];
-      T* __restrict__ dK6_dazi = &buff[off+6*nWav];
+      //T* const __restrict__ dK0_dazi = &buff[off];
+      T* const __restrict__ dK1_dazi = &buff[off+nWav];
+      T* const __restrict__ dK2_dazi = &buff[off+2*nWav];
+      //T* const __restrict__ dK3_dazi = &buff[off+3*nWav];
+      T* const __restrict__ dK4_dazi = &buff[off+4*nWav];
+      T* const __restrict__ dK5_dazi = &buff[off+5*nWav];
+      //T* const __restrict__ dK6_dazi = &buff[off+6*nWav];
       
       off += 7*nWav;
-      T* __restrict__ dK0_dvl = &buff[off];
-      T* __restrict__ dK1_dvl = &buff[off+nWav];
-      T* __restrict__ dK2_dvl = &buff[off+2*nWav];
-      T* __restrict__ dK3_dvl = &buff[off+3*nWav];
-      T* __restrict__ dK4_dvl = &buff[off+4*nWav];
-      T* __restrict__ dK5_dvl = &buff[off+5*nWav];
-      T* __restrict__ dK6_dvl = &buff[off+6*nWav];
+      T* const __restrict__ dK0_dvl = &buff[off];
+      T* const __restrict__ dK1_dvl = &buff[off+nWav];
+      T* const __restrict__ dK2_dvl = &buff[off+2*nWav];
+      T* const __restrict__ dK3_dvl = &buff[off+3*nWav];
+      T* const __restrict__ dK4_dvl = &buff[off+4*nWav];
+      T* const __restrict__ dK5_dvl = &buff[off+5*nWav];
+      T* const __restrict__ dK6_dvl = &buff[off+6*nWav];
 
       off += 7*nWav;
-      T* __restrict__ dK0_dvD = &buff[off];
-      T* __restrict__ dK1_dvD = &buff[off+nWav];
-      T* __restrict__ dK2_dvD = &buff[off+2*nWav];
-      T* __restrict__ dK3_dvD = &buff[off+3*nWav];
-      T* __restrict__ dK4_dvD = &buff[off+4*nWav];
-      T* __restrict__ dK5_dvD = &buff[off+5*nWav];
-      T* __restrict__ dK6_dvD = &buff[off+6*nWav];
+      T* const __restrict__ dK0_dvD = &buff[off];
+      T* const __restrict__ dK1_dvD = &buff[off+nWav];
+      T* const __restrict__ dK2_dvD = &buff[off+2*nWav];
+      T* const __restrict__ dK3_dvD = &buff[off+3*nWav];
+      T* const __restrict__ dK4_dvD = &buff[off+4*nWav];
+      T* const __restrict__ dK5_dvD = &buff[off+5*nWav];
+      T* const __restrict__ dK6_dvD = &buff[off+6*nWav];
 
       off += 7*nWav;
-      T* __restrict__ dK0_deta = &buff[off];
-      T* __restrict__ dK1_deta = &buff[off+nWav];
-      T* __restrict__ dK2_deta = &buff[off+2*nWav];
-      T* __restrict__ dK3_deta = &buff[off+3*nWav];
-      T* __restrict__ dK4_deta = &buff[off+4*nWav];
-      T* __restrict__ dK5_deta = &buff[off+5*nWav];
-      T* __restrict__ dK6_deta = &buff[off+6*nWav];
+      T* const __restrict__ dK0_deta = &buff[off];
+      T* const __restrict__ dK1_deta = &buff[off+nWav];
+      T* const __restrict__ dK2_deta = &buff[off+2*nWav];
+      T* const __restrict__ dK3_deta = &buff[off+3*nWav];
+      T* const __restrict__ dK4_deta = &buff[off+4*nWav];
+      T* const __restrict__ dK5_deta = &buff[off+5*nWav];
+      T* const __restrict__ dK6_deta = &buff[off+6*nWav];
 
       off += 7*nWav;
-      T* __restrict__ dK0_ddam = &buff[off];
-      T* __restrict__ dK1_ddam = &buff[off+nWav];
-      T* __restrict__ dK2_ddam = &buff[off+2*nWav];
-      T* __restrict__ dK3_ddam = &buff[off+3*nWav];
-      T* __restrict__ dK4_ddam = &buff[off+4*nWav];
-      T* __restrict__ dK5_ddam = &buff[off+5*nWav];
-      T* __restrict__ dK6_ddam = &buff[off+6*nWav];
+      T* const __restrict__ dK0_ddam = &buff[off];
+      T* const __restrict__ dK1_ddam = &buff[off+nWav];
+      T* const __restrict__ dK2_ddam = &buff[off+2*nWav];
+      T* const __restrict__ dK3_ddam = &buff[off+3*nWav];
+      T* const __restrict__ dK4_ddam = &buff[off+4*nWav];
+      T* const __restrict__ dK5_ddam = &buff[off+5*nWav];
+      T* const __restrict__ dK6_ddam = &buff[off+6*nWav];
       
       
       // --- Now compute derivatives of K --- //
@@ -624,75 +624,75 @@ namespace ml{
   // ******************************************************************************************* //
   
   template<typename T>
-  void compute_Stokes_RF(int const nWav, const T* __restrict__ buffer, T* __restrict__ out, T* __restrict__ RF, T const S0, T const S1, T const mu)
+  void compute_Stokes_RF(int const nWav, const T* const __restrict__ buffer, T* const __restrict__ out, T* const __restrict__ RF, T const S0, T const S1, T const mu)
   {
     
-    const T* __restrict__ ki = &buffer[0*nWav];
-    const T* __restrict__ kq = &buffer[1*nWav];
-    const T* __restrict__ ku = &buffer[2*nWav];
-    const T* __restrict__ kv = &buffer[3*nWav];
-    const T* __restrict__ fq = &buffer[4*nWav];
-    const T* __restrict__ fu = &buffer[5*nWav];
-    const T* __restrict__ fv = &buffer[6*nWav];
+    const T* const __restrict__ ki = &buffer[0*nWav];
+    const T* const __restrict__ kq = &buffer[1*nWav];
+    const T* const __restrict__ ku = &buffer[2*nWav];
+    const T* const __restrict__ kv = &buffer[3*nWav];
+    const T* const __restrict__ fq = &buffer[4*nWav];
+    const T* const __restrict__ fu = &buffer[5*nWav];
+    const T* const __restrict__ fv = &buffer[6*nWav];
 
-    T* __restrict__ I = &out[0     ];
-    T* __restrict__ Q = &out[1*nWav];
-    T* __restrict__ U = &out[2*nWav];
-    T* __restrict__ V = &out[3*nWav];
+    T* const __restrict__ I = &out[0     ];
+    T* const __restrict__ Q = &out[1*nWav];
+    T* const __restrict__ U = &out[2*nWav];
+    T* const __restrict__ V = &out[3*nWav];
     
 
-    T* __restrict__ dI_dB = &RF[0];
-    T* __restrict__ dQ_dB = &RF[1*nWav];
-    T* __restrict__ dU_dB = &RF[2*nWav];
-    T* __restrict__ dV_dB = &RF[3*nWav];
+    T* const __restrict__ dI_dB = &RF[0];
+    T* const __restrict__ dQ_dB = &RF[1*nWav];
+    T* const __restrict__ dU_dB = &RF[2*nWav];
+    T* const __restrict__ dV_dB = &RF[3*nWav];
 
     int off = 4*nWav;
-    T* __restrict__ dI_dinc = &RF[off];
-    T* __restrict__ dQ_dinc = &RF[off+1*nWav];
-    T* __restrict__ dU_dinc = &RF[off+2*nWav];
-    T* __restrict__ dV_dinc = &RF[off+3*nWav];
+    T* const __restrict__ dI_dinc = &RF[off];
+    T* const __restrict__ dQ_dinc = &RF[off+1*nWav];
+    T* const __restrict__ dU_dinc = &RF[off+2*nWav];
+    T* const __restrict__ dV_dinc = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_dazi = &RF[off];
-    T* __restrict__ dQ_dazi = &RF[off+1*nWav];
-    T* __restrict__ dU_dazi = &RF[off+2*nWav];
-    T* __restrict__ dV_dazi = &RF[off+3*nWav];
+    T* const __restrict__ dI_dazi = &RF[off];
+    T* const __restrict__ dQ_dazi = &RF[off+1*nWav];
+    T* const __restrict__ dU_dazi = &RF[off+2*nWav];
+    T* const __restrict__ dV_dazi = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_dvl = &RF[off];
-    T* __restrict__ dQ_dvl = &RF[off+1*nWav];
-    T* __restrict__ dU_dvl = &RF[off+2*nWav];
-    T* __restrict__ dV_dvl = &RF[off+3*nWav];
+    T* const __restrict__ dI_dvl = &RF[off];
+    T* const __restrict__ dQ_dvl = &RF[off+1*nWav];
+    T* const __restrict__ dU_dvl = &RF[off+2*nWav];
+    T* const __restrict__ dV_dvl = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_dvD = &RF[off];
-    T* __restrict__ dQ_dvD = &RF[off+1*nWav];
-    T* __restrict__ dU_dvD = &RF[off+2*nWav];
-    T* __restrict__ dV_dvD = &RF[off+3*nWav];
+    T* const __restrict__ dI_dvD = &RF[off];
+    T* const __restrict__ dQ_dvD = &RF[off+1*nWav];
+    T* const __restrict__ dU_dvD = &RF[off+2*nWav];
+    T* const __restrict__ dV_dvD = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_deta = &RF[off];
-    T* __restrict__ dQ_deta = &RF[off+1*nWav];
-    T* __restrict__ dU_deta = &RF[off+2*nWav];
-    T* __restrict__ dV_deta = &RF[off+3*nWav];
+    T* const __restrict__ dI_deta = &RF[off];
+    T* const __restrict__ dQ_deta = &RF[off+1*nWav];
+    T* const __restrict__ dU_deta = &RF[off+2*nWav];
+    T* const __restrict__ dV_deta = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_ddam = &RF[off];
-    T* __restrict__ dQ_ddam = &RF[off+1*nWav];
-    T* __restrict__ dU_ddam = &RF[off+2*nWav];
-    T* __restrict__ dV_ddam = &RF[off+3*nWav];
+    T* const __restrict__ dI_ddam = &RF[off];
+    T* const __restrict__ dQ_ddam = &RF[off+1*nWav];
+    T* const __restrict__ dU_ddam = &RF[off+2*nWav];
+    T* const __restrict__ dV_ddam = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_dS0 = &RF[off];
-    T* __restrict__ dQ_dS0 = &RF[off+1*nWav];
-    T* __restrict__ dU_dS0 = &RF[off+2*nWav];
-    T* __restrict__ dV_dS0 = &RF[off+3*nWav];
+    T* const __restrict__ dI_dS0 = &RF[off];
+    //T* const __restrict__ dQ_dS0 = &RF[off+1*nWav];
+    //T* const __restrict__ dU_dS0 = &RF[off+2*nWav];
+    //T* const __restrict__ dV_dS0 = &RF[off+3*nWav];
 
     off += 4*nWav;
-    T* __restrict__ dI_dS1 = &RF[off];
-    T* __restrict__ dQ_dS1 = &RF[off+1*nWav];
-    T* __restrict__ dU_dS1 = &RF[off+2*nWav];
-    T* __restrict__ dV_dS1 = &RF[off+3*nWav];
+    T* const __restrict__ dI_dS1 = &RF[off];
+    T* const __restrict__ dQ_dS1 = &RF[off+1*nWav];
+    T* const __restrict__ dU_dS1 = &RF[off+2*nWav];
+    T* const __restrict__ dV_dS1 = &RF[off+3*nWav];
 
 
     // --- Source function S0 derivatives --- //
@@ -702,16 +702,16 @@ namespace ml{
 
 
     // --- Buffer for precomputed constants --- //
-    T* __restrict__ GP = new T [nWav*8]();
+    T* const __restrict__ GP = new T [nWav*8]();
     
-    T* __restrict__ GP1= GP;
-    T* __restrict__ GP2 = &GP[nWav];
-    T* __restrict__ GP3 = &GP[2*nWav];
-    T* __restrict__ GP4 = &GP[3*nWav];
-    T* __restrict__ GP5 = &GP[4*nWav];
-    T* __restrict__ GP6 = &GP[5*nWav];
-    T* __restrict__ S1mud = &GP[6*nWav];
-    T* __restrict__ del   = &GP[7*nWav];
+    T* const __restrict__ GP1= GP;
+    T* const __restrict__ GP2 = &GP[nWav];
+    T* const __restrict__ GP3 = &GP[2*nWav];
+    T* const __restrict__ GP4 = &GP[3*nWav];
+    T* const __restrict__ GP5 = &GP[4*nWav];
+    T* const __restrict__ GP6 = &GP[5*nWav];
+    T* const __restrict__ S1mud = &GP[6*nWav];
+    T* const __restrict__ del   = &GP[7*nWav];
 
     for(int ww=0; ww<nWav; ++ww){
 
@@ -759,13 +759,13 @@ namespace ml{
 
     int off3 = 15*nWav + 24*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       
       for(int ww=0; ww<nWav; ++ww)
@@ -778,13 +778,13 @@ namespace ml{
 
     off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -795,13 +795,13 @@ namespace ml{
 
     off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -812,13 +812,13 @@ namespace ml{
 
     off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -829,13 +829,13 @@ namespace ml{
 
         off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -847,13 +847,13 @@ namespace ml{
 
     off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -864,13 +864,13 @@ namespace ml{
 
     off3 += 7*nWav;
     {
-      const T* __restrict__ dki = &buffer[off3];
-      const T* __restrict__ dkq = &buffer[off3+nWav];
-      const T* __restrict__ dku = &buffer[off3+2*nWav];
-      const T* __restrict__ dkv = &buffer[off3+3*nWav];
-      const T* __restrict__ dfq = &buffer[off3+4*nWav];
-      const T* __restrict__ dfu = &buffer[off3+5*nWav];
-      const T* __restrict__ dfv = &buffer[off3+6*nWav];
+      const T* const __restrict__ dki = &buffer[off3];
+      const T* const __restrict__ dkq = &buffer[off3+nWav];
+      const T* const __restrict__ dku = &buffer[off3+2*nWav];
+      const T* const __restrict__ dkv = &buffer[off3+3*nWav];
+      const T* const __restrict__ dfq = &buffer[off3+4*nWav];
+      const T* const __restrict__ dfu = &buffer[off3+5*nWav];
+      const T* const __restrict__ dfv = &buffer[off3+6*nWav];
       
       for(int ww=0; ww<nWav; ++ww)
 	computeDIDv(ki[ww], kq[ww], ku[ww], kv[ww], fq[ww], fu[ww], fv[ww],
@@ -897,7 +897,7 @@ namespace ml{
 
   template<typename T>
   void ME_Synth_RF(std::vector<double> const &wav, std::vector<ln::line<T>> const& lines,
-		   const T* __restrict__ m, T* __restrict__ out, T* __restrict__ RF,
+		   const T* const __restrict__ m, T* const __restrict__ out, T* const __restrict__ RF,
 		   T const mu)
   {
 
@@ -927,7 +927,7 @@ namespace ml{
     
     // --- Allocate memory buffer ---//
     
-    T* __restrict__ buff = new T [nWav*15 + nWav*7*7 + 24*nWav]();
+    T* const __restrict__ buff = new T [nWav*15 + nWav*7*7 + 24*nWav]();
     
 
     
