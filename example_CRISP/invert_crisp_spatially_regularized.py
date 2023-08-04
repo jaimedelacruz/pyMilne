@@ -48,6 +48,7 @@ if __name__ == "__main__":
     # Decide to work in float32 or float64
     #
     dtype = 'float64'
+    nthreads = 8
     
     #
     # Load data, wavelength array and cmap
@@ -128,7 +129,7 @@ if __name__ == "__main__":
 
     regions = [[iw1 + 6302.4931,tr1/tr1.sum()], [iw2 + 6302.4931, tr2/tr2.sum()]]
     lines = [6301,6302]
-    me = ME.MilneEddington(regions, lines, nthreads=256, precision=dtype)
+    me = ME.MilneEddington(regions, lines, nthreads=nthreads, precision=dtype)
 
 
     #
