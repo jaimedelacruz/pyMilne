@@ -13,6 +13,112 @@ namespace spa{
   // ******************************************************************************** //
 
   template<typename T, typename U, typename ind_t = long>
+  void count_Hessian(ind_t const ny, ind_t const nx, ind_t const npar, spa::Data<T,U,ind_t> const& dat,
+		     Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> &A,  int const nthreads)
+  {
+    
+    // --- let's calculate in parallel the number of elements in the Hessian --- //
+
+    Eigen::VectorXi n_elements(ny*nx*npar); n_elements.setZero();
+
+    
+    // --- Loop over pixels and count elements --- //
+
+    ind_t const npix     = ny*nx;
+    ind_t const nregions = dat.regions.size();
+
+#pragma omp parallel default(shared) num_threads(nthreads)
+    {
+#pragma omp for
+      for(ind_t ipix = 0; ipix<npix; ++ipix){
+	
+	int xx0 = nx;
+	int xx1 = 0;
+	int yy0 = ny;
+	int yy1 = 0;
+	
+	for(ind_t ireg=0; ireg<nregions; ++ireg){
+	  
+	  //spa::SpatRegion<T,ind_t> const& ir = *.get();
+	  std::array<int,4> const& ma = dat.regions[ireg]->matrix_elements[ipix];
+
+	  yy0 = std::min<int>(ma[0], yy0);
+	  yy1 = std::max<int>(ma[1], yy1);
+	  xx0 = std::min<int>(ma[2], xx0);
+	  xx1 = std::max<int>(ma[3], xx1);
+
+	  
+	} // ireg
+	
+	int const nel = (yy1-yy0+1)*(xx1-xx0+1)*npar;
+	
+	for(ind_t ii=0; ii<npar; ++ii)
+	  n_elements[ipix*npar + ii] = nel;
+	
+      } // ipix
+    } // parallel
+    
+    // --- now make allocation --- //
+
+    A.reserve(n_elements);
+
+
+    fprintf(stderr,  "populating ... ");
+
+    // --- now actually insert the elements in the matrix explicitly --- //
+
+#pragma omp parallel default(shared) num_threads(nthreads)
+    {
+#pragma omp for
+      for(ind_t ipix = 0; ipix<npix; ++ipix){
+	
+	int xx0 = nx;
+	int xx1 = 0;
+	int yy0 = ny;
+	int yy1 = 0;
+	
+	for(ind_t ireg=0; ireg<nregions; ++ireg){
+	  
+	  //spa::SpatRegion<T,ind_t> const& ir = *dat.regions[ireg].get();
+	  //std::array<int,4> const& ma = ir.matrix_elements[ipix];
+	  std::array<int,4> const& ma = dat.regions[ireg]->matrix_elements[ipix];
+
+	  yy0 = std::min<int>(ma[0], yy0);
+	  yy1 = std::max<int>(ma[1], yy1);
+	  xx0 = std::min<int>(ma[2], xx0);
+	  xx1 = std::max<int>(ma[3], xx1);
+
+	  
+	} // ireg
+	
+	
+	// --- now insert that patch in the Hessian for all parameters --- //
+
+	ind_t const y0 = yy0;
+	ind_t const y1 = yy1;
+	ind_t const x0 = xx0;
+	ind_t const x1 = xx1;
+	ind_t const poff = ipix*npar;
+	
+	for(ind_t jj = y0; jj<=y1; ++jj){
+	  ind_t const joff = jj*nx*npar;
+	  
+	  for(ind_t ii = x0; ii<= x1; ++ii){
+	    ind_t const ioff = joff + ii*npar;
+	    
+	    for(ind_t pp0=0; pp0<npar; ++pp0)
+	      for(ind_t pp1=0; pp1<npar; ++pp1)
+		A.insert(poff + pp0, ioff + pp1) = T(0);
+	      
+	  } // ii
+	} // jj
+      } // ipix
+    } // parallel
+  }
+  
+  // ******************************************************************************** //
+
+  template<typename T, typename U, typename ind_t = long>
   void fillResiduePixel(mem::Array<T,5> const& J, mem::Array<T,3> const& r,
 			U* const __restrict__ B, ind_t const ipix,
 			ind_t const ny, ind_t const nx, ind_t const npar, ind_t const w0,
@@ -192,12 +298,13 @@ namespace spa{
 
 	// --- use raw pointers in the inner loop for better performance --- //
 
+	//T const pweight = reg.pixel_weight(yy,xx);
 	T* const __restrict__ r       = &reg.r(yy,xx,0);
 	const T* const __restrict__ o = &reg.obs(yy,xx,0,0);
 	const T* const __restrict__ s = &reg.syn(yy,xx,0,0);
 
 	for(ind_t dd=0; dd<nd; ++dd){
-	  r[dd] = (o[dd] - s[dd]) * sig[dd];
+	  r[dd] = (o[dd] - s[dd]) * sig[dd];//*pweight;
 	} //dd
 	
       } // xx
@@ -358,10 +465,11 @@ namespace spa{
   // ******************************************************************************** //
 
   template<typename T, typename U, typename ind_t = long>
-  void fillHessianOne(Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> &iA, mem::Array<T,5> const& J,
+  void fillHessianOne(Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> &A, mem::Array<T,5> const& J,
 		      ind_t const w0, ind_t const w1, ind_t const yy, ind_t const xx,
 		      ind_t const ny, ind_t const nx, ind_t const npar, ind_t const j0, ind_t const j1,
-		      ind_t const i0, ind_t const i1, Eigen::SparseMatrix<T,Eigen::RowMajor, ind_t> const& cc)
+		      ind_t const i0, ind_t const i1, Eigen::SparseMatrix<T,Eigen::RowMajor, ind_t> const& cc,
+		      mem::Array<T,2> const& pweight, ind_t const ir)
   {
     /* --- 
        For a given pixel (xx,yy) this function fills the influence of the degradation operator
@@ -380,25 +488,25 @@ namespace spa{
 
     for(ind_t dy=j0; dy<=j1; ++dy){
       for(ind_t dx=i0; dx<=i1; ++dx){
-
+	
 	
 	// --- cross-correlation coeff, reuse it in the entire sub-block of npar x npar --- //
 	
 	T const iY = cc.coeff(yy*nx+xx, dy*nx+dx); 
 	ind_t const offx = npar*(dy*nx+dx);
-
-
+	
+	
 	// --- Calculate the product of Jacobians --- //
 	
 	for(ind_t pp0=0; pp0<npar; ++pp0){
 	  for(ind_t pp1=0; pp1<npar; ++pp1){
-
+	    
 	    T sum = T(0);
 	    
 	    for(ind_t ss=ns-1; ss>=0; --ss){
-
+	      
 	      // --- Use raw pointers to ensure vectorization of the inner loop --- //
-
+	      
 	      const T* const __restrict__ jJ = &J(yy,xx,pp0,ss,0);
 	      const T* const __restrict__ iJ = &J(dy,dx,pp1,ss,0);
 	      
@@ -406,9 +514,9 @@ namespace spa{
 		sum += iJ[dd]*jJ[dd];
 	    }
 	    
- 	    // --- insert in the sparse matrix --- //
-	     
-	    iA.insert(offy+pp0,offx+pp1) = sum*iY;
+	    // --- insert in the sparse matrix --- //
+	    
+	    A.coeffRef(offy+pp0,offx+pp1) += sum*iY;
 	    
 	  }// pp1
 	} // pp0
@@ -441,9 +549,6 @@ namespace spa{
       spa::SpatRegion<T,ind_t> const& iR = *dat.regions[ir].get();
       Eigen::VectorXi elements_per_row = spa::countRegionElements<T,ind_t>(iR, ny, nx, npar);
 
-      Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> iA(npix*npar, npix*npar);
-      iA.reserve(elements_per_row);
-      
 #pragma omp parallel default(shared) num_threads(nthreads)
       {
 #pragma omp for
@@ -454,20 +559,12 @@ namespace spa{
 	  
 	  std::array<int,4> const& me = iR.matrix_elements[ipix];
 	  
-	  fillHessianOne<T,U,ind_t>(iA, J, iR.wl, iR.wh, yy, xx, ny, nx, npar,
+	  fillHessianOne<T,U,ind_t>(A, J, iR.wl, iR.wh, yy, xx, ny, nx, npar,
 				    std::get<0>(me), std::get<1>(me), std::get<2>(me),
-				    std::get<3>(me), iR.cc);
+				    std::get<3>(me), iR.cc, iR.pixel_weight, ir);
 	  
 	} // ipix
       } // parallel block
-
-      // --- add to the total Hessian matrix the contribution from this region --- //
-
-      if(ir == 0){
-	A = iA;
-      }else{
-	A += iA;
-      }
       
       
 	

@@ -187,7 +187,7 @@ spa::SpatRegion<T,ind_t>::SpatRegion(ind_t const iny, ind_t const inx,
 			    int const nthreads):
   ny(iny1), nx(inx1), wl(iwl), wh(iwh), y0(iy0), y1(iy1), x0(ix0), x1(ix1),
   clip_threshold(clip_thres), wav(wh-wl+1), obs(iObs,iny1,inx1,4,wh-wl+1),  syn(iny1,inx1,4,wh-wl+1),
-  r(iny1, inx1, 4*(wh-wl+1)), sig(4,wh-wl+1), psf(pny,pnx)
+  r(iny1, inx1, 4*(wh-wl+1)), sig(4,wh-wl+1), psf(pny,pnx), pixel_weight(iny1,inx1)
 {
   /* ---
      Initialize Sparse region. In order to accelerate the calculations within eath iteration,
@@ -210,6 +210,25 @@ spa::SpatRegion<T,ind_t>::SpatRegion(ind_t const iny, ind_t const inx,
   ind_t const nw = wh-wl+1;
   ind_t const ndat = nw*4;
   
+
+  // --- init pixel weight --- //
+
+  T fmean = T(0);
+  for(ind_t yy = 0; yy<ny; ++yy){
+    for(ind_t xx = 0; xx<nx; ++xx){
+      T sum = T(0);
+      const T* const __restrict__ iDat = &obs(yy,xx,0,0);
+
+      for(ind_t dd=0;dd<ndat;++dd)
+	sum += iDat[dd];
+
+      pixel_weight(yy,xx) = sqrt(sum/ndat); // sqrt of the mean
+      fmean += pixel_weight(yy,xx);
+    }
+  }
+  fmean /= ny*nx;
+  
+  pixel_weight = fmean / pixel_weight;
   
   // --- Copy the sigma array --- //
   

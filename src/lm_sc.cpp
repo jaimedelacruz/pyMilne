@@ -1,3 +1,12 @@
+/* ---
+
+   Implementation of the spatially coupled LM routines.
+   Many of the routines to construct the spatially coupled Hessian and residue
+   can be found in spatially_coupled_tools.hpp and spatially_coupled_helper.{hpp,cpp}
+
+   Coded by J. de la Cruz Rodriguez (ISP-SU, 2023)
+   
+   --- */
 #include <cmath>
 #include <chrono>
 
@@ -15,12 +24,12 @@ using namespace spa;
 // *********************************************************************************************** //
 
 template<typename T, typename U, typename ind_t>
-Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t>
-construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m, 
+void construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m, 
 			Eigen::SparseMatrix<U, Eigen::RowMajor,ind_t> const& L,
 			Eigen::SparseMatrix<U, Eigen::RowMajor,ind_t> const& LL,
 			Eigen::Matrix<U,Eigen::Dynamic,1> &B,
-			Eigen::Matrix<U,Eigen::Dynamic,1> &diagonal)
+			Eigen::Matrix<U,Eigen::Dynamic,1> &diagonal,
+			Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> &A)
 
 {
   
@@ -31,6 +40,7 @@ construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m,
   ind_t const npix = ny*nx;
   ind_t const nw = dat.nw;
   ind_t const ns = dat.ns;
+  ind_t const dim = npar*npix;
 
   fprintf(stderr,"\n       [Constructing coupled linear system");
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -49,7 +59,7 @@ construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m,
   B -= L.transpose() * dat.getGamma(m);
  
   
-  Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> A(B.size(),B.size());
+  //Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> A(B.size(),B.size());
 
   
 
@@ -78,9 +88,16 @@ construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m,
 
   // --- Add regularization Hessian --- //
 
-  A += LL;
+  for(ind_t dd=0; dd<dim;++dd){ // for all rows
 
-  
+    // --- iterate over all non-zero elements in that row, pray that they are allocated in the Hessian ... --- //
+    
+    for(typename Eigen::SparseMatrix<T,Eigen::RowMajor,ind_t>::InnerIterator it(LL,dd); it; ++it){
+      
+      ind_t const idx = it.index();
+      A.coeffRef(dd,idx) += it.value();
+    }
+  }
   
   // --- Copy diagonal so we don't need to rebuild the matrix if we change Lambda --- //
 
@@ -99,7 +116,6 @@ construct_linear_system(spa::Data<T,U,ind_t> &dat, mem::Array<T,3> &m,
   double dt = double(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count())*0.001;
   fprintf(stderr," -> dt=%lf s]", dt);
   
-  return A;
 }
 
 
@@ -112,7 +128,6 @@ template<typename T> T checkLambda(T const L, T const Lmin, T const Lmax)
 
 
 // *********************************************************************************************** //
-
 
 template<typename T, typename U, typename ind_t>
 void InitSolutionSystem( T const Lam,
@@ -151,8 +166,8 @@ void InitSolutionSystem( T const Lam,
   
 }
 
-
 // *********************************************************************************************** //
+
 
 template<typename T, typename U, typename ind_t>
 spa::Chi2_t<T> SolveSystem( T const Lam,
@@ -180,7 +195,7 @@ spa::Chi2_t<T> SolveSystem( T const Lam,
 
 
   
-  // --- Solve linear system, if Lambda <= 3e-1, try obtaining an initial guess --- //
+  // --- Solve linear system, try obtaining an initial guess --- //
 
   Eigen::Matrix<U,Eigen::Dynamic,1> dm;
   
@@ -284,6 +299,15 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   this->LL = L.transpose() * L;
 
   Eigen::Matrix<T,Eigen::Dynamic, 1> B(m.size()); B.setZero();
+
+
+  // --- Preallocate Hessian matrix --- //
+
+  Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t> A(dat.ny*dat.nx*dat.npar, dat.ny*dat.nx*dat.npar);
+  fprintf(stderr,"[info] invert: preallocating Hessian matrix ... ");
+  spa::count_Hessian(dat.ny, dat.nx, dat.npar, dat, A, nthreads);
+  fprintf(stderr,"done\n");
+    
   
   
   // --- Get initial Chi2 --- // //
@@ -299,8 +323,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   
   // --- Construct coupled system --- //
 
-  Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t>
-    A = construct_linear_system<T,U,ind_t>(dat, m, this->L, this->LL, B, this->Diagonal);
+  construct_linear_system<T,U,ind_t>(dat, m, this->L, this->LL, B, this->Diagonal, A);
   
   int failed = 0;
   
@@ -343,8 +366,8 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
     // --- recompute linear system? --- ?
 
     if((failed == 0) && (iter <= max_niter)){
-      A = Eigen::SparseMatrix<U,Eigen::RowMajor,ind_t>(B.size(), B.size());
-      A = construct_linear_system<T,U,ind_t>(dat, m, this->L, this->LL, B, this->Diagonal);
+      A.coeffs() *= U(0);
+      construct_linear_system<T,U,ind_t>(dat, m, this->L, this->LL, B, this->Diagonal, A);
     }
 
   } // iter
