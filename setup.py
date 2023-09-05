@@ -34,7 +34,8 @@ os.environ["CXX"] = CXX
 
 # Optimization flags. With M-processor Macs remove the -march=native!
 
-comp_flags=['-O3', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",'-mprefer-vector-width=256', '-DNDEBUG', '-pedantic', '-Wall']
+comp_flags=['-Ofast', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",'-mprefer-vector-width=256', '-DNDEBUG', '-pedantic', '-Wall']
+
 
 
 extension = Extension("pyMilne",
@@ -45,8 +46,8 @@ extension = Extension("pyMilne",
                       extra_compile_args=comp_flags,
                       extra_link_args=comp_flags+link_opts,
                       library_dirs=['./',"/usr/lib/"],
-                      libraries=['fftw3'])
-#                      undef_macros = [ "NDEBUG" ])
+                      libraries=['fftw3'],
+                      undef_macros = [ "NDEBUG" ])
 
 extension.cython_directives = {'language_level': "3"}
 
