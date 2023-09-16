@@ -41,7 +41,7 @@ def loadData(clip_threshold = 0.99):
     
     wav, obs = doubleGrid(readFits('hinode_170x170_deep.fits', ext=1).transpose((1,2,0)).reshape((170,170,4,112)) / 30000.911001378045)
     tr = np.float64([0.00240208, 0.00390950, 0.0230995, 0.123889, 0.198799,0.116474,0.0201897,0.00704875,0.00277027]) # source A. Asensio 
-    psf = readFits('hinode_psf_0.16.fits')
+    psf = readFits('hinode_psf_0.08.fits')
 
     sig = np.zeros((4, 112*2)) + 1.e32
     sig[:,0::2] = 1.e-3
@@ -73,19 +73,31 @@ def smoothModel(m, fwhm):
 
 # **************************************************************
 
+def resizeModel(m):
+    ny, nx, npar = m.shape
+    res = np.zeros((ny*2, nx*2, npar))
+
+    res[0::2,0::2] = m
+    res[1::2,1::2] = m
+
+    return res
+    
+
+# **************************************************************
+
 if __name__ == "__main__":
 
-    nthreads=64
+    nthreads=128
 
 
     # Sanity check
     bla = 'n'
-    bla = input("Has your machine at least 50 GB of RAM in order to run this inversion? [n/y] ")
+    bla = input("Has your machine at least 350 GB of RAM in order to run this inversion? [n/y] ")
     if(bla != 'y'):
         sys.exit("exiting ... ")
     
     # Load data
-    region, sregion = loadData()
+    region, sregion = loadData(clip_threshold=0.9)
 
 
     # Init ME inverter
@@ -97,13 +109,17 @@ if __name__ == "__main__":
     m = me.repeat_model(Ipar, ny, nx)
     
 
-    # Invert pixel by pixel
+    # Invert pixel by pixel to get a closer initial guess
     mpix, syn, chi2 = me.invert(m, sregion[0][0], sregion[0][1], nRandom=5, nIter=15, chi2_thres=1.0, mu=0.96)
     writeFits("modelout_pixel-to-pixel.fits", mpix)
 
     # smooth model
     m = smoothModel(mpix, 4)
 
+
+    # Generate a model at 0.08"/pix res
+    m = resizeModel(m)
+    
 
     # invert spatially-coupled with initial guess from pixel-to-pixel (less iterations)
     m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=10, alpha=100., \
@@ -116,11 +132,13 @@ if __name__ == "__main__":
     m = smoothModel(m1, 2)
 
     
-    # invert spatially-coupled 
+    # invert spatially-coupled
+    sregion[0][-1] = 0.95
     m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=10., \
                                           alphas = np.float64([2,2,2,0.01,0.01,0.01,0.01,0.01,0.01]),\
                                           init_lambda=1.0)
     
-    writeFits("modelout_spatially_coupled.fits", m1)
+    writeFits("modelout_spatially_coupled_x2.fits", m1)
 
+    
     
