@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # invert spatially-coupled
     sregion[0][-1] = 0.95
     m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=50., \
-                                          alphas = np.float64([2,2,2,0.01,0.01,0.01,0.01,0.01,0.01]),\
+                                          alphas = np.float64([2,2,1,0.01,0.01,0.01,0.005,0.01,0.01]),\
                                           init_lambda=1.0)
     
     ut.writeFits("modelout_spatially_coupled_x2.fits", m1)
