@@ -8,25 +8,15 @@ from astropy.io import fits
 
 # **************************************************************
 
-def writeFits(filename, var):
-    print("[info] writeFits: writing -> {0}".format(filename))
-    io = fits.PrimaryHDU(var)
-    io.writeto(filename, overwrite=True)
-    
-    
-# **************************************************************
-
-def readFits(filename, dtype='float64', ext=0):
-    print("[info] readFits: reading -> {0}".format(filename))
-    io = fits.open(filename, 'readonly')
-    res = np.ascontiguousarray(io[ext].data, dtype=dtype)
-    io.close()
-    return res
-
-# **************************************************************
-
 def doubleGrid(obs):
-
+    """
+    The Hinode spectra are undersampled by almost a factor x2
+    in the spectral direction. We need to synthesize the spectra
+    in a critically sampled grid in order to perform the convolution
+    with the instrumental profile. We will ignore these fake points
+    by giving them zero weight in the inversion.
+    """
+    
     ny, nx, ns, nw = obs.shape
     obs1 = np.zeros((ny, nx, ns, nw*2))
     obs1[:,:,:,0::2] = obs
@@ -39,9 +29,9 @@ def doubleGrid(obs):
 
 def loadData(clip_threshold = 0.99):
     
-    wav, obs = doubleGrid(readFits('hinode_170x170_deep.fits', ext=1).transpose((1,2,0)).reshape((170,170,4,112)) / 30000.911001378045)
+    wav, obs = doubleGrid(ut.readFits('hinode_170x170_deep.fits', ext=1).transpose((1,2,0)).reshape((170,170,4,112)) / 30000.911001378045)
     tr = np.float64([0.00240208, 0.00390950, 0.0230995, 0.123889, 0.198799,0.116474,0.0201897,0.00704875,0.00277027]) # source A. Asensio 
-    psf = readFits('hinode_psf_0.08.fits')
+    psf = ut.readFits('hinode_psf_0.08.fits')
 
     sig = np.zeros((4, 112*2)) + 1.e32
     sig[:,0::2] = 1.e-3
@@ -50,26 +40,6 @@ def loadData(clip_threshold = 0.99):
 
     return [[wav, tr/tr.sum()]], [[obs, sig, psf/psf.sum(), clip_threshold]]
     
-    
-    
-# **************************************************************
-
-def smoothModel(m, fwhm):
-
-    npix = int(fwhm*2.5)
-    if((npix//2)*2 == npix):
-        npix -= 1
-
-    psf = ut.gauss2d(npix, fwhm)
-    psf /= psf.sum()
-
-    res = np.copy(m)
-    ny, nx, npar = res.shape
-
-    for ii in range(npar):
-        res[:,:,ii] = ut.fftconvol2d(res[:,:,ii].squeeze(), psf)
-
-    return res
 
 # **************************************************************
 
@@ -77,8 +47,11 @@ def resizeModel(m):
     ny, nx, npar = m.shape
     res = np.zeros((ny*2, nx*2, npar))
 
-    res[0::2,0::2] = m
-    res[1::2,1::2] = m
+    # replicate model in the new grid
+    res[0::2,0::2,:] = m
+    res[1::2,0::2,:] = m
+    res[0::2,1::2,:] = m
+    res[1::2,1::2,:] = m
 
     return res
     
@@ -87,7 +60,7 @@ def resizeModel(m):
 
 if __name__ == "__main__":
 
-    nthreads=128
+    nthreads = 128  # adapt this number to the number of cores that are available in your machine
 
 
     # Sanity check
@@ -110,11 +83,11 @@ if __name__ == "__main__":
     
 
     # Invert pixel by pixel to get a closer initial guess
-    mpix, syn, chi2 = me.invert(m, sregion[0][0], sregion[0][1], nRandom=5, nIter=15, chi2_thres=1.0, mu=0.96)
-    writeFits("modelout_pixel-to-pixel.fits", mpix)
+    mpix, syn, chi2 = me.invert(m, sregion[0][0], sregion[0][1], nRandom=8, nIter=15, chi2_thres=1.0, mu=0.96)
+    ut.writeFits("modelout_pixel-to-pixel.fits", mpix)
 
     # smooth model
-    m = smoothModel(mpix, 4)
+    m = ut.smoothModel(mpix, 4)
 
 
     # Generate a model at 0.08"/pix res
@@ -122,23 +95,25 @@ if __name__ == "__main__":
     
 
     # invert spatially-coupled with initial guess from pixel-to-pixel (less iterations)
-    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=10, alpha=100., \
-                                     alphas = np.float64([1,1,1,0.01,0.01,0.01,0.01,0.01,0.01]),\
-                                     init_lambda=10.0)
-
+    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=10, alpha=200., \
+                                          alphas = np.float64([1,1,1,0.01,0.01,0.01,0.01,0.01,0.01]),\
+                                          init_lambda=10.0)
+    
     
 
     # smooth model with very narrow PSF and restart with less regularization (lower alpha)
-    m = smoothModel(m1, 2)
+    m = ut.smoothModel(m1, 2)
 
+
+    
     
     # invert spatially-coupled
     sregion[0][-1] = 0.95
-    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=10., \
+    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=50., \
                                           alphas = np.float64([2,2,2,0.01,0.01,0.01,0.01,0.01,0.01]),\
                                           init_lambda=1.0)
     
-    writeFits("modelout_spatially_coupled_x2.fits", m1)
-
+    ut.writeFits("modelout_spatially_coupled_x2.fits", m1)
+    
     
     

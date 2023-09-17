@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from astropy.io import fits
 
 # ***********************************************************************************
 
@@ -91,4 +93,75 @@ def gauss2d(npsf, fwhm):
             psf[yy,xx] = np.exp(-0.5 * ((xx-npsf2)**2 + (yy-npsf2)**2) / sig)
     return(psf)
 
+# **************************************************************
+
+def writeFits(filename, var):
+    print("[info] writeFits: writing -> {0}".format(filename))
+    io = fits.PrimaryHDU(var)
+    io.writeto(filename, overwrite=True)
+    
+    
+# **************************************************************
+
+def readFits(filename, dtype='float64', ext=0):
+    print("[info] readFits: reading -> {0}".format(filename))
+    io = fits.open(filename, 'readonly')
+    res = np.ascontiguousarray(io[ext].data, dtype=dtype)
+    io.close()
+    return res
+
+# ***********************************************************************************
+
+def mkplot(m_in):
+
+    m = np.copy(m_in)
+    m[:,:,0] = m_in[:,:,0] * np.cos(m_in[:,:,1])*0.001
+    m[:,:,1] = m_in[:,:,0] * np.sin(m_in[:,:,1])*0.001
+    m[:,:,4] *= 1.e3
+    
+    plt.ion()
+    f, ax = plt.subplots(nrows=3, ncols=3, sharex=True, sharey=True, figsize=(8,6.))
+    ax1 = ax.flatten()
+    
+    mi = np.float64([-2.200,0,0,-4,0,0,0.05,0,0.35])
+    ma = np.float64([2.200,1.700, np.pi, 4, 65, 50, 2, 0.5, 1.2])
+    cm = ['gist_gray', 'bone', 'RdGy', 'bwr', 'afmhot','gist_gray','gist_gray','gist_gray','gist_gray']
+    lab = [r'$B_\parallel$ [kG]', r'$B_\perp$ [kG]', r'$\varphi$ [rad]', r'v$_\mathrm{l.o.s}$ [km/s]', r'v$_\mathrm{turb}$ [m$\mathrm{\AA}$]', r'$\eta_L$', r'$a$', r'$S_0$', r'$S_1$']
+    ext = np.float64([0,170,0,170])*0.158
+    pl = [None]*9
+    cl = [None]*9
+
+    for ii in range(9):
+        pl[ii] = ax1[ii].imshow(m[:,:,ii], vmax=ma[ii], vmin=mi[ii], interpolation='nearest', \
+                                cmap=cm[ii], extent=ext, origin='lower', aspect=1)
+        cl[ii] = f.colorbar(pl[ii], ax=ax1[ii], shrink=0.8, orientation='vertical')
+        cl[ii].set_label(lab[ii], fontsize=8)
+
+
+    for ii in range(3):
+        ax[2,ii].set_xlabel("x [arcsec]")
+        ax[ii,0].set_ylabel("y [arcsec]")
+
+    f.subplots_adjust(wspace=0.05, hspace=0.01, bottom=0.1, top=0.98, left=0.08, right=0.95)
+    
+    return f, ax
+
+# **************************************************************
+
+def smoothModel(m, fwhm):
+
+    npix = int(fwhm*2.5)
+    if((npix//2)*2 == npix):
+        npix -= 1
+
+    psf = gauss2d(npix, fwhm)
+    psf /= psf.sum()
+
+    res = np.copy(m)
+    ny, nx, npar = res.shape
+
+    for ii in range(npar):
+        res[:,:,ii] = fftconvol2d(res[:,:,ii].squeeze(), psf)
+
+    return res
 # ***********************************************************************************
