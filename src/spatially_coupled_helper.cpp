@@ -222,13 +222,14 @@ spa::SpatRegion<T,ind_t>::SpatRegion(ind_t const iny, ind_t const inx,
       for(ind_t dd=0;dd<ndat;++dd)
 	sum += iDat[dd];
 
-      pixel_weight(yy,xx) = sqrt(sum/ndat); // sqrt of the mean
+      pixel_weight(yy,xx) = sum/ndat; // sqrt of the mean
       fmean += pixel_weight(yy,xx);
     }
   }
-  fmean /= ny*nx;
   
-  pixel_weight = fmean / pixel_weight;
+  fmean /= ny*nx;
+  pixel_weight = sqrt(fmean / pixel_weight);
+
   
   // --- Copy the sigma array --- //
   
@@ -256,18 +257,22 @@ spa::SpatRegion<T,ind_t>::SpatRegion(ind_t const iny, ind_t const inx,
       spa::psf_to_operator(psf, iny, inx);
   
 
-  //Op = spa::DiagonalOperator<T,ind_t>(iny,inx); // Only for debugging
+  {
+    Eigen::SparseMatrix<T,Eigen::RowMajor,ind_t> tmp = Op;
+    
+    ind_t const npix = iny*inx;
+    for(ind_t ii=0; ii<npix; ++ii)
+      tmp.row(ii) *= pixel_weight[ii]; // add the pixel weight to the Hessian terms
+    
   
-  OpT = Op.transpose();
   
-  
-  
-  // --- Calculate cross-correlation of the total degradation operator,
-  //     we can get it by computing cc = Op.T * Op, but it is faster to express
-  //     Op = Op.T as the columns of Op would be consecutive in memory --- //
-  
-  cc = OpT*Op;
+    // --- Calculate cross-correlation of the total degradation operator,
+    //     we can get it by computing cc = Op.T * Op, but it is faster to express
+    //     Op = Op.T as the columns of Op would be consecutive in memory --- //
 
+    OpT = tmp.transpose(); //  includes the pixel weight
+    cc = OpT*tmp;
+  }
   
   
   // --- Init matrix_elements --- //

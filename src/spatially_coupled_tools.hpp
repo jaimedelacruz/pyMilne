@@ -62,7 +62,6 @@ namespace spa{
 
     A.reserve(n_elements);
 
-
     fprintf(stderr,  "populating ... ");
 
     // --- now actually insert the elements in the matrix explicitly --- //
@@ -153,7 +152,6 @@ namespace spa{
       ind_t const ii = idx1 - jj*reg.nx;
 
       T const iDegradation = it.value();
-
 
       for(ind_t pp=0; pp<npar; ++pp){
 	
@@ -298,13 +296,13 @@ namespace spa{
 
 	// --- use raw pointers in the inner loop for better performance --- //
 
-	//T const pweight = reg.pixel_weight(yy,xx);
+	T const pweight = reg.pixel_weight(yy,xx);
 	T* const __restrict__ r       = &reg.r(yy,xx,0);
 	const T* const __restrict__ o = &reg.obs(yy,xx,0,0);
 	const T* const __restrict__ s = &reg.syn(yy,xx,0,0);
 
 	for(ind_t dd=0; dd<nd; ++dd){
-	  r[dd] = (o[dd] - s[dd]) * sig[dd];//*pweight;
+	  r[dd] = (o[dd] - s[dd]) * sig[dd]*pweight;
 	} //dd
 	
       } // xx

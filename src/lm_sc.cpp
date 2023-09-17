@@ -281,7 +281,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
 
   // --- Init some temporary variables --- //
 
-  T Lam = checkLambda(init_Lambda, minLam, maxLam);
+  T Lam = checkLambda(init_Lambda, minLam, maxLam), oLam = 0;
   
   
   // --- check model parameter and compress them --- //
@@ -307,10 +307,13 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   fprintf(stderr,"[info] invert: preallocating Hessian matrix ... ");
   spa::count_Hessian(dat.ny, dat.nx, dat.npar, dat, A, nthreads);
   fprintf(stderr,"done\n");
-    
+
+  double siZ = (double(A.nonZeros())*(sizeof(U) +sizeof(ind_t)) + double(dat.ny*dat.nx*dat.npar)*sizeof(ind_t))*1.e-9;
+  fprintf(stderr,"\n[info] invert: sparse Hessian size -> %lf GBytes\n\n", siZ);
+
   
   
-  // --- Get initial Chi2 --- // //
+  // --- Get initial Chi2 --- // 
 
   mem::Array<T,4> syn(dat.ny, dat.nx, dat.ns, dat.nw); syn.Zero();
   dat.synthesize(m, syn);
@@ -331,7 +334,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
 
   int iter = 1;
   while(iter <= max_niter){
-
+    
     m = BestModel;
     Chi2 = getCorrection(iter, BestChi2, m, A, B, Lam, dat);
 
@@ -342,8 +345,11 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
     
       fprintf(stderr,"\n\n[info] invert: iter=%3d, Chi2=%13.5f (Reg=%e), Lambda=%le", iter, Chi2.get(), Chi2.reg, Lam);
 
+      oLam = Lam;
       Lam = checkLambda(Lam/facLam, minLam, maxLam);
-
+      
+      if((Lam == oLam) && (Lam < 0.1)) Lam = 0.31622776601683794;
+      
       failed = 0;
       iter+=1;
       
