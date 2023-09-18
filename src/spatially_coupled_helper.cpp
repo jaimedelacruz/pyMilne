@@ -260,7 +260,8 @@ spa::SpatRegion<T,ind_t>::SpatRegion(ind_t const iny, ind_t const inx,
   {
     Eigen::SparseMatrix<T,Eigen::RowMajor,ind_t> tmp = Op;
     
-    ind_t const npix = iny*inx;
+    ind_t const npix = iny1*inx1;// number of pixels in spatial region
+    
     for(ind_t ii=0; ii<npix; ++ii)
       tmp.row(ii) *= pixel_weight[ii]; // add the pixel weight to the Hessian terms
     
