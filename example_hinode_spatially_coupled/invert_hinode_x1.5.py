@@ -5,6 +5,8 @@ from astropy.io import fits
 import sys
 import utils as ut
 from astropy.io import fits
+from importlib import reload
+reload(ut)
 
 # **************************************************************
 
@@ -31,7 +33,7 @@ def loadData(clip_threshold = 0.99):
     
     wav, obs = doubleGrid(ut.readFits('hinode_170x170_deep.fits', ext=1).transpose((1,2,0)).reshape((170,170,4,112)) / 30000.911001378045)
     tr = np.float64([0.00240208, 0.00390950, 0.0230995, 0.123889, 0.198799,0.116474,0.0201897,0.00704875,0.00277027]) # source A. Asensio 
-    psf = ut.readFits('hinode_psf_0.08.fits')
+    psf = ut.readFits('hinode_psf_0.11.fits')
 
     sig = np.zeros((4, 112*2)) + 1.e32
     sig[:,0::2] = 1.e-3
@@ -43,15 +45,16 @@ def loadData(clip_threshold = 0.99):
 
 # **************************************************************
 
-def resizeModel(m):
+def resizeModel15(m):
     ny, nx, npar = m.shape
-    res = np.zeros((ny*2, nx*2, npar))
+    nx1 = round(nx*1.5)
+    ny1 = round(ny*1.5)
 
-    # replicate model in the new grid
-    res[0::2,0::2,:] = m
-    res[1::2,0::2,:] = m
-    res[0::2,1::2,:] = m
-    res[1::2,1::2,:] = m
+    res = np.zeros((ny1, nx1, npar))
+
+    for ii in range(npar):
+        res[:,:,ii] = ut.congrid(m[:,:,ii], ny1, nx1)
+
 
     return res
     
@@ -60,12 +63,12 @@ def resizeModel(m):
 
 if __name__ == "__main__":
 
-    nthreads = 32  # adapt this number to the number of cores that are available in your machine
+    nthreads = 32 # adapt this number to the number of cores that are available in your machine
 
 
     # Sanity check
     bla = 'n'
-    bla = input("Has your machine at least 350 GB of RAM in order to run this inversion? [n/y] ")
+    bla = input("Has your machine at least 117 GB of RAM in order to run this inversion? [n/y] ")
     if(bla != 'y'):
         sys.exit("exiting ... ")
     
@@ -91,7 +94,7 @@ if __name__ == "__main__":
 
 
     # Generate a model at 0.08"/pix res
-    m = resizeModel(m)
+    m = resizeModel15(m)
     
 
     # invert spatially-coupled with initial guess from pixel-to-pixel (less iterations)
@@ -100,20 +103,20 @@ if __name__ == "__main__":
                                           init_lambda=10.0)
     
     
-
+    
     # smooth model with very narrow PSF and restart with less regularization (lower alpha)
     m = ut.smoothModel(m1, 2)
-
-
+    
+    
     
     
     # invert spatially-coupled
     sregion[0][-1] = 0.95
-    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=50., \
+    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=35.0, \
                                           alphas = np.float64([2,2,1,0.01,0.01,0.01,0.005,0.01,0.01]),\
                                           init_lambda=1.0)
     
-    ut.writeFits("modelout_spatially_coupled_x2.fits", m1)
+    ut.writeFits("modelout_spatially_coupled_x1.5.fits", m1)
     
     
     

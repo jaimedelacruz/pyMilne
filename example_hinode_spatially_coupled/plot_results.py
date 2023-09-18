@@ -26,4 +26,7 @@ if __name__ == "__main__":
         f, ax = ut.mkplot(ut.readFits("modelout_spatially_coupled_x2.fits"))
         f.savefig('fig_spatially_coupled.pdf', dpi=250, format='pdf')
         del f, ax
-        
+    if(os.path.isfile("modelout_spatially_coupled_x2.fits")):
+        f, ax = ut.mkplot(ut.readFits("modelout_spatially_coupled_x1.5.fits"))
+        f.savefig('fig_spatially_coupled_x1.5.pdf', dpi=250, format='pdf')
+        del f, ax   
