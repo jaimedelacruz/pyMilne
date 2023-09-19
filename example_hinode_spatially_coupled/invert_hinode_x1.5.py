@@ -93,7 +93,7 @@ if __name__ == "__main__":
     m = ut.smoothModel(mpix, 4)
 
 
-    # Generate a model at 0.08"/pix res
+    # Generate a model at 0.105"/pix res
     m = resizeModel15(m)
     
 
