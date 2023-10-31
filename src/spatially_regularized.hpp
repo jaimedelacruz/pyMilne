@@ -178,7 +178,8 @@ namespace spa{
       
       // --- get initial solution with a large value of lambda --- //
 
-      getInitialSolution(nDiag, iLam, Atot, dx);
+      if(method != 2)
+	getInitialSolution(nDiag, iLam, Atot, dx);
 
       
       
@@ -191,19 +192,19 @@ namespace spa{
       
       // --- Solve for corrections --- //
       
-      //if(method == 0){
-      //	Eigen::ConjugateGradient<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>, Eigen::Lower| Eigen::Upper> solver(Atot);
-      //	dx = solver.solve(B);
-      //}else if(method == 1){
-      Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-      dx = solver.solve(B);
-	//}else if(method == 2){
-	//Eigen::SparseLU<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-	//dx = solver.solve(B);
-	//}else{
-	//Eigen::GMRES<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-	//dx = solver.solve(B);
-	// }
+      if(method == 0){
+      	Eigen::ConjugateGradient<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>, Eigen::Lower| Eigen::Upper> solver(Atot);
+      	dx = solver.solveWithGuess(B, dx);
+      }else if(method == 1){
+	Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	dx = solver.solveWithGuess(B, dx);
+      }else if(method == 2){
+	Eigen::SparseLU<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	dx = solver.solve(B);
+      }else{
+	Eigen::GMRES<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	dx = solver.solveWithGuess(B, dx);
+      }
    
 
       
@@ -228,7 +229,7 @@ namespace spa{
       Eigen::Matrix<T, Eigen::Dynamic, 1> Gam = cont.getGamma(npar, m);
       
       Chi2<T> chi2(ksum2<T,long double>(nt*npix*ndat, &rnew[0]), ksum2<T,long double>(Gam.size(), &Gam[0]));
-      /// ---- JCR: STOPPED HERE --- //
+
       return chi2;
     }
     
@@ -326,7 +327,7 @@ namespace spa{
 
       static constexpr T const facLam = 2.0;
       static constexpr T const maxLam = 1000.;
-      static constexpr T const minLam =  3.1622776601683795e-3;
+      static constexpr T const minLam =  1e-4;
       static constexpr int const max_n_reject = 6;
 
       

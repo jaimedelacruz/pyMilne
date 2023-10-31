@@ -1,13 +1,9 @@
-#from distutils.core import setup
 from setuptools import setup
 from setuptools.extension import Extension
-#from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import os
 import numpy
-#from distutils import sysconfig
-#import numpy.distutils.intelccompiler
-#import numpy.distutils.ccompiler
+
 import platform as plt
 import sys
 import pathlib
@@ -32,10 +28,14 @@ os.environ["CC"] = CC
 os.environ["CXX"] = CXX
 
 
-# Optimization flags. With M-processor Macs remove the -march=native!
+# Optimization flags. With Macs M-processor remove the -march=native!
 
 comp_flags=['-Ofast', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",'-mprefer-vector-width=256', '-DNDEBUG', '-pedantic', '-Wall']
 
+
+# Optimization flags for development
+
+#comp_flags=['-Og', '-g3','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 
 
 extension = Extension("pyMilne",
@@ -46,14 +46,14 @@ extension = Extension("pyMilne",
                       extra_compile_args=comp_flags,
                       extra_link_args=comp_flags+link_opts,
                       library_dirs=['./',"/usr/lib/"],
-                      libraries=['fftw3'],
-                      undef_macros = [ "NDEBUG" ])
+                      libraries=['fftw3'])
+#                      undef_macros = [ "NDEBUG" ])
 
 extension.cython_directives = {'language_level': "3"}
 
 setup(
     name = 'pyMilne',
-    version = '2.0',
+    version = '3.0',
     author = 'J. de la Cruz Rodriguez (ISP-SU 2018 - 2023)',
     ext_modules=[extension],
     cmdclass = {'build_ext': build_ext}

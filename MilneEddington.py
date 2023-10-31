@@ -297,23 +297,32 @@ class MilneEddington:
     
     # *************************************************************************************************
 
-    def repeat_model(self, m_in, ny, nx):
+    def repeat_model(self, m_in, ny, nx, nt=None):
         """
         This routine repeats a 1D model over an entire FOV with dimensions ny, nx pixels
         m_in must have 9 elements
         """
         dtype = self._get_dtype()
 
-        res = np.zeros((ny, nx, 9), dtype = dtype, order='c')
+        if(nt is not None):
+            res = np.zeros((nt, ny, nx, 9), dtype = dtype, order='c')
+        else:
+            res = np.zeros((ny, nx, 9), dtype = dtype, order='c')
+
         m = m_in.squeeze()
         
         nPar = m.shape[0]
+        
         if(nPar != 9):
             print("MilneEddington::repeat_model: Error, input model must have 9 elements!")
             return None
 
-        for ii in range(9):
-            res[:,:,ii] = m[ii]
+        if(nt is not None):
+            for ii in range(9):
+                res[:,:,:,ii] = m[ii]
+        else:
+            for ii in range(9):
+                res[:,:,ii] = m[ii]    
             
         return res
 
@@ -359,19 +368,24 @@ class MilneEddington:
     
     # *************************************************************************************************
       
-    def invert_spatially_regularized(self, model, obs, sig = 1.e-3, mu = 1.0, nIter = 20, chi2_thres = 1.0, alpha=1.0, alphas=np.ones(9,dtype='float32'), method = 0, delay_bracket = 3):
+    def invert_spatially_regularized(self, model, obs, sig = 1.e-3, mu = 1.0, nIter = 20, chi2_thres = 1.0,
+                                     alpha=1.0, alphas=np.ones(9,dtype='float32'),
+                                     alpha_time=1.0, alphas_time=np.ones(9,dtype='float32'),
+                                     method = 1, delay_bracket = 3):
         """
         invert_spatially_regularized observations acquired at a given mu angle
         Arguments:
-              model: 1D [9] or 3D array [ny,nx,9] with the parameters of the model
-                obs: 2D [4,nwav] or 4D array [ny,nx,4,nwav] with the observed profiles. Should be normalized to the mean continuum.
+              model: 1D [9], 3D array [ny,nx,9] or 4D array [nt,ny,nx,9] with the parameters of the model
+                obs: 2D [4,nwav], 4D array [ny,nx,4,nwav] or 5D array [nt,ny,nx,4,nw] with the observed profiles. Should be normalized to the mean continuum.
                 sig: scalar or 2D array [4,nwav] with the noise estimate
                  mu:    heliocentric angle for the synthesis
               nIter: maximum number of Levenberg Marquardt iterations per inversion
          chi2_thres: stop inversion if Chi2 <= chi2_thres
               alpha: global regularization weight that multiplies the value of "alphas" (default = 1).
+       x alpha_time: global time regularization weight that multiplies the value of "alphas_time" (default = 1).   
              alphas: the relative scaling of regularization weights for each parameter (default = 1).
-             method: Numerical method to solve the sparse system: 0) Conjugate Gradient, 1) BiCGStab, 2) SparseLU (default 0)
+        alphas_time: the relative scaling of regularization weights for each parameter in time (default = 1).
+             method: Numerical method to solve the sparse system: 0) Conjugate Gradient, 1) BiCGStab, 2) SparseLU (default 1)
       delay_bracket: Delay optimal lambda bracketing for this number of iterations. Avoids taking too large steps in the initial iterations.
         The model parameters are: [|B| [G], inc [rad], azi [rad], vlos [km/s], vDop [\AA], eta_l, damp, S0, S1]
 
@@ -387,14 +401,17 @@ class MilneEddington:
         dtype = self._get_dtype()
 
         if(ndim == 1):
-            model1 = np.ascontiguousarray(model.reshape((1,1,model.size)), dtype=dtype)
+            model1 = np.ascontiguousarray(model.reshape((1,1,1,model.size)), dtype=dtype)
         elif(ndim == 3):
+            ny,nx,npar = model.shape
+            model1 = model.reshape((1,ny,nx,npar))
+        elif(ndim == 4):
             model1 = model
         else:
-            print("MilneEddington::invert_spatially_regularized_float: ERROR, the input model must have 1 or 3 dimensions")
+            print("MilneEddington::invert_spatially_regularized_float: ERROR, the input model must have 1, 3 or 4 dimensions")
             return None, None, None
 
-        if(model1.shape[2] != 9):
+        if(model1.shape[3] != 9):
             print("MilneEddington::invert_spatially_regularized_float: ERROR, input model has npar={0}, should be 9".format(model1.shape[2]))
             return None, None, None
 
@@ -412,15 +429,18 @@ class MilneEddington:
         if(ndim == 2):
             obs1 = np.ascontiguousarray(model.reshape((1,1,obs.shape[0], obs.shape[1])), dtype=dtype)
         elif(ndim == 4):
+            ny,nx,ns,nw = obs.shape
+            obs1 = obs.reshape((1,ny,nx,ns,nw))
+        elif(ndim == 5):
             obs1 = obs
         else:
-            print("MilneEddington::invert_spatially_regularized_float: ERROR, the input observations must have 2 or 4 dimensions")
+            print("MilneEddington::invert_spatially_regularized_float: ERROR, the input observations must have 2, 4 or 5 dimensions")
             return None, None, None
 
         
         wav = self.Me.get_wavelength_array()
         nwav = wav.size
-        if(obs1.shape[3] != nwav):
+        if(obs1.shape[4] != nwav):
             print("MilneEddington::invert_spatially_regularized_float: ERROR, input observations has nwav={0}, should be nwav={1}".format(obs1.shape[3], nwav))
             return None, None, None
 
@@ -451,13 +471,17 @@ class MilneEddington:
         # make alphas
         #
         alphas_in = np.zeros(9,dtype=dtype)
+        alphas_time_in = np.zeros(9,dtype=dtype)
+
         for ii in range(9):
             alphas_in[ii] = alpha * alphas[ii]
+            alphas_time_in[ii] = alpha_time * alphas_time[ii]
+
         
         #
         # Call C++ module
         #
-        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
+        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, alphas_time_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
     
 
     # *************************************************************************************************
@@ -512,11 +536,14 @@ class MilneEddington:
         # make alphas
         #
         alphas_in = np.zeros(9,dtype=dtype)
+        alphast_in = np.zeros(9,dtype=dtype)
+
         for ii in range(9):
             alphas_in[ii] = alpha * alphas[ii]
+            alphast_in[ii] = alpha_time * alphas_time[ii]
 
 
         
 
         
-        return self.Me.invert_Spatially_Coupled(model1, spat_regions, alphas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=0, delay_bracket = delay_bracket, iLam = init_lambda)
+        return self.Me.invert_Spatially_Coupled(model1, spat_regions, alphas_in, alphast_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=0, delay_bracket = delay_bracket, iLam = init_lambda)

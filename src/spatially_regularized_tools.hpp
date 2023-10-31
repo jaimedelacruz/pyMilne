@@ -206,6 +206,7 @@ namespace spa{
 	for(long jj=0; jj<nwav;++jj){
 	  sum += iI[jj];
 	}
+	
 	if(sum < 1.e-6){
 	  pwe[ii] = 1.e32;// intensity is zero, ignore pixel
 	}else{
