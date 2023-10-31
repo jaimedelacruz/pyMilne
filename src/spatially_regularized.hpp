@@ -325,7 +325,7 @@ namespace spa{
       Eigen::initParallel();
       Eigen::setNbThreads(nthreads);
 
-      static constexpr T const facLam = 2.0;
+      static constexpr T const facLam = 2.75;
       static constexpr T const maxLam = 1000.;
       static constexpr T const minLam =  1e-4;
       static constexpr int const max_n_reject = 6;
@@ -435,7 +435,7 @@ namespace spa{
 	    else
 	      iLam *= facLam*facLam;
 	  else
-	    iLam = facLam*iLam;
+	    iLam = facLam*facLam*iLam;
 	    	    
 	  if(dfx < fx_thres){
 	    if(tooSmall) quit = true;
