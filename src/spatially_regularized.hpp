@@ -36,7 +36,7 @@ namespace spa{
   template<typename T, typename iType = long>
   class lms{
   protected:
-    iType npar, ny, nx;
+    iType npar, nt, ny, nx;
     
     Eigen::SparseMatrix<T, Eigen::RowMajor, iType> A;
     
@@ -46,8 +46,8 @@ namespace spa{
     Eigen::SparseMatrix<T,Eigen::RowMajor, iType> LL;
     
   public:
-    lms(long const inpar, long const iny, long const inx):
-      npar(inpar), ny(iny), nx(inx),  A(), B(){};
+    lms(long const inpar, long const i_nt, long const iny, long const inx):
+      npar(inpar), nt(i_nt), ny(iny), nx(inx),  A(), B(){};
         
     // ------------------------------------------------------------ //
     
@@ -67,6 +67,7 @@ namespace spa{
 			  T* const __restrict__ r,  Eigen::Matrix<T,Eigen::Dynamic,1> const& Reg_RHS)
     {
 
+      
       iType const npix = cont.ny*cont.nx;
       iType const ndat = cont.nDat;
       iType const nthreads = cont.getNthreads();
@@ -77,54 +78,60 @@ namespace spa{
       
       // --- Build Sparse system --- //
 
-      B.resize(npix*npar); B.setZero();
-      A.resize(0,0); A.data().squeeze(); A.resize(npix*npar, npix*npar);
-      A.reserve(Eigen::VectorXi::Constant(npix*npar,npar));
+      B.resize(nt*npix*npar); B.setZero();
+      A.resize(0,0); A.data().squeeze(); A.resize(nt*npix*npar, nt*npix*npar);
+      A.reserve(Eigen::VectorXi::Constant(nt*npix*npar,npar));
 
       
       T* __restrict__ iJ = NULL;
-      iType ipix=0, tid=0, ii=0, jj=0;
+      iType ipix=0, itime=0, tid=0, ii=0, jj=0;
       T iSum = 0;
 
       // --- parallel block --- //
       
-#pragma omp parallel default(shared) firstprivate(ipix, tid, iSum, ii, jj, iJ) num_threads(nthreads)      
+#pragma omp parallel default(shared) firstprivate(ipix, itime, tid, iSum, ii, jj, iJ) num_threads(nthreads)      
       {
 	
 	tid = omp_get_thread_num();
 	iJ = new T [npar*ndat](); // Allocate thread buffer for derivatives
 	
-#pragma omp for
-	for(ipix=0; ipix<npix; ++ipix){
-
-	  // --- synthesize_one pixel with derivatives --- //
-	  
-	  cont.synthesize_der_one(npar, &m[ipix*npar], &r[ipix*ndat], iJ, tid, ipix);
-
-
-	  // --- Fill in subspace in sparse Hessian matrix --- //
-
-	  for(jj=0; jj<npar; ++jj){
-
-	    // --- RHS of the equation --- //
+#pragma omp for collapse(2)
+	for(itime=0; itime<nt; ++itime){
+	  for(ipix=0; ipix<npix; ++ipix){
 	    
-	    B[ipix*npar+jj] = ksumMult<T,long double>(ndat, &iJ[jj*ndat], &r[ipix*ndat]) - Reg_RHS[ipix*npar+jj];
-	    
-	    for(ii=0; ii<=jj;++ii){
+	    iType const tpix = (itime*npix+ipix);
+	    iType const Elem = tpix*npar;
 
-	      // --- Matrix subspaces --- //
+	    // --- synthesize_one pixel with derivatives --- //
+	    
+	    cont.synthesize_der_one(npar, &m[Elem], &r[tpix*ndat], iJ, tid, tpix);
+	    
+
+	    
+	    // --- Fill in subspace in sparse Hessian matrix --- //
+	    
+	    for(jj=0; jj<npar; ++jj){
 	      
-	      iSum = get_one_JJ(ndat, &iJ[jj*ndat], &iJ[ii*ndat]);
-	      A.insert(ipix*npar + jj, ipix*npar + ii) = iSum;
+
+	      // --- RHS of the equation --- //
 	      
-	      if(ii != jj) // The matrix is symmetric but avoid inserting the diagonal term twice
-	       	A.insert(ipix*npar + ii, ipix*npar + jj) = iSum;
+	      B[tpix*npar+jj] = ksumMult<T,long double>(ndat, &iJ[jj*ndat], &r[tpix*ndat]) - Reg_RHS[Elem+jj];
+
 	      
-	    } // ii
-	  } // jj
-	  
-	  
-	} // ipix
+	      for(ii=0; ii<=jj;++ii){
+		
+		// --- Matrix subspaces --- //
+		
+		iSum = get_one_JJ(ndat, &iJ[jj*ndat], &iJ[ii*ndat]);
+		A.insert(Elem + jj, Elem + ii) = iSum;
+		
+		if(ii != jj) // The matrix is symmetric but avoid inserting the diagonal term twice in the diagonal
+		  A.insert(Elem + ii, Elem + jj) = iSum;
+		
+	      } // ii
+	    } // jj    
+	  } // ipix
+	} // itime
 	
 	delete [] iJ;
 	iJ = NULL;
@@ -136,62 +143,92 @@ namespace spa{
 
     // ------------------------------------------------------------ //
 
+    void getInitialSolution(iType const nDiag, T const iLam, Eigen::SparseMatrix<T,Eigen::RowMajor,iType> &Atot,
+			    Eigen::Matrix<T,Eigen::Dynamic,1> &dx)const
+    {
+      
+      // --- damp diagonal with a large value and get correction --- //
+      
+      T const one_ilam = ((iLam <= 20) ? T(1) + 20 : T(1)+iLam);
+      
+      for(iType kk =0; kk<nDiag; ++kk)
+	Atot.coeffRef(kk,kk) *= one_ilam;
+
+
+      Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+      dx = solver.solve(B);
+
+    }
+
+    // ------------------------------------------------------------ //
+
     Chi2<T> getCorrection(container<T> const& cont, T* const __restrict__ m,
 			  T* const __restrict__ syn, T* const __restrict__ r, T const iLam, int const method)const 
     {
 
 
       iType const npix = cont.ny*cont.nx;
+      iType const nt   = cont.nt;
       iType const ndat = cont.nDat;
+      iType const nDiag = iType(npar)*iType(npix) * nt;
 
       Eigen::SparseMatrix<T,Eigen::RowMajor,iType> Atot = A+LL;
+      Eigen::Matrix<T,Eigen::Dynamic,1> dx;
 
+      
+      // --- get initial solution with a large value of lambda --- //
+
+      getInitialSolution(nDiag, iLam, Atot, dx);
+
+      
       
       // --- damp diagonal and get correction --- //
       
-      iType const nDiag = iType(npar)*iType(npix);
       T const one_ilam = 1.0 + iLam;
       for(iType kk =0; kk<nDiag; ++kk)
 	Atot.coeffRef(kk,kk) *= one_ilam;
 
-      Eigen::Matrix<T,Eigen::Dynamic,1> dx;
       
       // --- Solve for corrections --- //
       
-      if(method == 0){
-	Eigen::ConjugateGradient<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>, Eigen::Lower| Eigen::Upper> solver(Atot);
-	dx = solver.solve(B);
-      }else if(method == 1){
-	Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-	dx = solver.solve(B);
-      }else if(method == 2){
-	Eigen::SparseLU<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-	dx = solver.solve(B);
-      }else{
-	Eigen::GMRES<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
-	dx = solver.solve(B);
-      }
+      //if(method == 0){
+      //	Eigen::ConjugateGradient<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>, Eigen::Lower| Eigen::Upper> solver(Atot);
+      //	dx = solver.solve(B);
+      //}else if(method == 1){
+      Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+      dx = solver.solve(B);
+	//}else if(method == 2){
+	//Eigen::SparseLU<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	//dx = solver.solve(B);
+	//}else{
+	//Eigen::GMRES<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
+	//dx = solver.solve(B);
+	// }
    
 
       
       // --- Check corrections --- //
       
-      for(iType pp=0; pp<npar; ++pp)
-	for(iType ipix = 0; ipix<npix; ++ipix){
-	  m[ipix*npar+pp] += dx[ipix*npar+pp];
-	  cont.Pinfo[pp].CheckNormalized(m[ipix*npar+pp]);
-	  
-	}
+	for(iType tt=0; tt<nt; ++tt){
+	  for(iType ipix = 0; ipix<npix; ++ipix){
+	    iType const tpix = (tt*npix+ipix)*npar;
+	    for(iType pp=0; pp<npar; ++pp){
+	      m[tpix+pp] += dx[tpix+pp];
+	      cont.Pinfo[pp].CheckNormalized(m[tpix+pp]);
+	    } // ipix
+	  } // tt
+	} // pp
+	
 
+	
       // --- compute chi2 --- //
-
-      
-      std::vector<T> rnew(ndat*npix,0);
+	
+      std::vector<T> rnew(nt*ndat*npix,0);
       cont.fx(npar, m, syn, &rnew[0]);
       Eigen::Matrix<T, Eigen::Dynamic, 1> Gam = cont.getGamma(npar, m);
       
-      Chi2<T> chi2(ksum2<T,long double>(npix*ndat, &rnew[0]), ksum2<T,long double>(Gam.size(), &Gam[0]));
-      
+      Chi2<T> chi2(ksum2<T,long double>(nt*npix*ndat, &rnew[0]), ksum2<T,long double>(Gam.size(), &Gam[0]));
+      /// ---- JCR: STOPPED HERE --- //
       return chi2;
     }
     
@@ -212,12 +249,13 @@ namespace spa{
 	// --- Bracketing optimal lambda value --- //
 	
 	iType const npix = cont.nx*cont.ny;
+	iType const nt = cont.nt;
 	std::vector<Chi2<T>> iChi2;
 	std::vector<T> Lambdas;
 
 	int idx = 0;
 
-	Eigen::Map<Eigen::Matrix<T,Eigen::Dynamic,1>> input_model(m, npix*npar);
+	Eigen::Map<Eigen::Matrix<T,Eigen::Dynamic,1>> input_model(m, npix*npar*nt);
 	Eigen::Matrix<T,Eigen::Dynamic,1> Model = input_model;
 
 	Chi2<T> chi2 = getCorrection(cont, &Model[0], syn, r, iLam, method);
@@ -297,8 +335,9 @@ namespace spa{
       Chi2<T> bestChi2(1.e34,1.e34); 
       Chi2<T> chi2 = bestChi2;
       
-      iType const npix = cont.ny*cont.nx;
+      iType const npix = cont.nt*cont.ny*cont.nx;
       iType const ndat = cont.nDat;
+       
       //iType const nJ = long(npix)*long(npar)*long(ndat);
 
       

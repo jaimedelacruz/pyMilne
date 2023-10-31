@@ -208,11 +208,13 @@ namespace wr{
   // ********************************************************************* //
   
   template<typename T>
-  T invert_spatially_regularized(long const ny, long const nx, long const ndat,
+  T invert_spatially_regularized(long const nt, long const ny, long const nx, long const ndat,
 				 std::vector<ml::Milne<T>> const& ME,  T* __restrict__ m,
 				 T* __restrict__ obs, T* __restrict__ syn, T* __restrict__ sig, int const method,
 				 int const nIter, T const chi2_thres, T const mu, T const iLam,
-				 const T* const __restrict__ alphas, int const delay_bracket)
+				 const T* const __restrict__ alphas,
+				 const T* const __restrict__ alphas_time,
+				 int const delay_bracket)
   {
 
     // --- Init parameters info array --- //
@@ -220,23 +222,23 @@ namespace wr{
     std::vector<spa::Par<T>> Pinfo;
     for(int ii=0; ii<9;++ii)
       Pinfo.emplace_back(spa::Par<T>(((ii == 2)? true: false), true, ml::pscl<T>[ii],
-				     ml::pmin<T>[ii], ml::pmax<T>[ii], alphas[ii]));
+				     ml::pmin<T>[ii], ml::pmax<T>[ii], alphas[ii], alphas_time[ii]));
   
     
     // --- init container --- //
     
-    spa::container<T> cont(ny, nx, mu, ndat, obs, sig, Pinfo, ME);
+    spa::container<T> cont(nt, ny, nx, mu, ndat, obs, sig, Pinfo, ME);
     
 
     
     // --- Init inverter class --- //
     
-    spa::lms<T,long> fitter(9, ny, nx);
+    spa::lms<T,long> fitter(9, nt, ny, nx);
 
 
     // --- Fit data --- //
     
-    return fitter.fitData(cont,  9, m, syn, nIter, iLam, chi2_thres,  2.e-3,  delay_bracket,  true, method);
+    return fitter.fitData(cont, 9, m, syn, nIter, iLam, chi2_thres,  2.e-3,  delay_bracket,  true, method);
   }
   
   
