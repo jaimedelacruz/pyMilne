@@ -214,6 +214,7 @@ namespace wr{
 				 int const nIter, T const chi2_thres, T const mu, T const iLam,
 				 const T* const __restrict__ alphas,
 				 const T* const __restrict__ alphas_time,
+				 const T* const __restrict__ betas, 
 				 int const delay_bracket)
   {
 
@@ -222,7 +223,7 @@ namespace wr{
     std::vector<spa::Par<T>> Pinfo;
     for(int ii=0; ii<9;++ii)
       Pinfo.emplace_back(spa::Par<T>(((ii == 2)? true: false), true, ml::pscl<T>[ii],
-				     ml::pmin<T>[ii], ml::pmax<T>[ii], alphas[ii], alphas_time[ii]));
+				     ml::pmin<T>[ii], ml::pmax<T>[ii], alphas[ii], alphas_time[ii], betas[ii]));
   
     
     // --- init container --- //

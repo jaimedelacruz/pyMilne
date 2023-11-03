@@ -39,7 +39,6 @@ namespace spa{
     iType npar, nt, ny, nx;
     
     Eigen::SparseMatrix<T, Eigen::RowMajor, iType> A;
-    
     Eigen::Matrix<T,Eigen::Dynamic, 1> B;
     
     Eigen::SparseMatrix<T,Eigen::RowMajor, iType> L;
@@ -71,70 +70,62 @@ namespace spa{
       iType const npix = cont.ny*cont.nx;
       iType const ndat = cont.nDat;
       iType const nthreads = cont.getNthreads();
-      //iType const nx = cont.nx;
-      //iType const ny = cont.ny;
-      //iType const Jstride = npar*ndat;
+      iType const nTot = nt*npix;
 
       
       // --- Build Sparse system --- //
 
-      B.resize(nt*npix*npar); B.setZero();
-      A.resize(0,0); A.data().squeeze(); A.resize(nt*npix*npar, nt*npix*npar);
-      A.reserve(Eigen::VectorXi::Constant(nt*npix*npar,npar));
+      B.resize(nTot*npar); B.setZero();
+      A.resize(0,0); A.data().squeeze(); A.resize(nTot*npar, nTot*npar);
+      A.reserve(Eigen::VectorXi::Constant(nTot*npar,npar));
 
       
-      T* __restrict__ iJ = NULL;
-      iType ipix=0, itime=0, tid=0, ii=0, jj=0;
-      T iSum = 0;
+      iType tid=0;
 
       // --- parallel block --- //
       
-#pragma omp parallel default(shared) firstprivate(ipix, itime, tid, iSum, ii, jj, iJ) num_threads(nthreads)      
+#pragma omp parallel default(shared) firstprivate( tid) num_threads(nthreads)      
       {
 	
 	tid = omp_get_thread_num();
-	iJ = new T [npar*ndat](); // Allocate thread buffer for derivatives
+	T* const __restrict__ iJ = new T [npar*ndat](); // Allocate thread buffer for derivatives
 	
-#pragma omp for collapse(2)
-	for(itime=0; itime<nt; ++itime){
-	  for(ipix=0; ipix<npix; ++ipix){
-	    
-	    iType const tpix = (itime*npix+ipix);
-	    iType const Elem = tpix*npar;
-
-	    // --- synthesize_one pixel with derivatives --- //
-	    
-	    cont.synthesize_der_one(npar, &m[Elem], &r[tpix*ndat], iJ, tid, tpix);
-	    
-
+#pragma omp for 
+	for(iType tpix=0; tpix<nTot;++tpix){
+	  
+	  iType const Elem = tpix*npar;
+	  
+	  // --- synthesize_one pixel with derivatives --- //
+	  
+	  cont.synthesize_der_one(npar, &m[Elem], &r[tpix*ndat], iJ, tid, tpix);
+	  
+	  
 	    
 	    // --- Fill in subspace in sparse Hessian matrix --- //
 	    
-	    for(jj=0; jj<npar; ++jj){
+	    for(iType jj=0; jj<npar; ++jj){
 	      
 
 	      // --- RHS of the equation --- //
 	      
-	      B[tpix*npar+jj] = ksumMult<T,long double>(ndat, &iJ[jj*ndat], &r[tpix*ndat]) - Reg_RHS[Elem+jj];
+	      B[Elem+jj] = ksumMult<T,long double>(ndat, &iJ[jj*ndat], &r[tpix*ndat]) - Reg_RHS[Elem+jj];
 
 	      
-	      for(ii=0; ii<=jj;++ii){
+	      for(iType ii=0; ii<npar;++ii){
 		
 		// --- Matrix subspaces --- //
 		
-		iSum = get_one_JJ(ndat, &iJ[jj*ndat], &iJ[ii*ndat]);
+		T const iSum = get_one_JJ(ndat, &iJ[jj*ndat], &iJ[ii*ndat]);
 		A.insert(Elem + jj, Elem + ii) = iSum;
 		
-		if(ii != jj) // The matrix is symmetric but avoid inserting the diagonal term twice in the diagonal
-		  A.insert(Elem + ii, Elem + jj) = iSum;
+		//if(ii != jj) // The matrix is symmetric but avoid inserting the diagonal term twice in the diagonal
+		// A.insert(Elem + ii, Elem + jj) = iSum;
 		
 	      } // ii
 	    } // jj    
-	  } // ipix
 	} // itime
 	
 	delete [] iJ;
-	iJ = NULL;
 	
       }// parallel
       
@@ -146,6 +137,11 @@ namespace spa{
     void getInitialSolution(iType const nDiag, T const iLam, Eigen::SparseMatrix<T,Eigen::RowMajor,iType> &Atot,
 			    Eigen::Matrix<T,Eigen::Dynamic,1> &dx)const
     {
+
+      // --- store diagonal --- //
+
+      Eigen::Matrix<T,Eigen::Dynamic,1> Diagonal = Atot.diagonal();
+
       
       // --- damp diagonal with a large value and get correction --- //
       
@@ -158,6 +154,11 @@ namespace spa{
       Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
       dx = solver.solve(B);
 
+      
+      // --- Restore diagonal --- //
+      
+      Atot.diagonal() = Diagonal;
+      
     }
 
     // ------------------------------------------------------------ //
@@ -170,17 +171,19 @@ namespace spa{
       iType const npix = cont.ny*cont.nx;
       iType const nt   = cont.nt;
       iType const ndat = cont.nDat;
-      iType const nDiag = iType(npar)*iType(npix) * nt;
-
+      iType const nTot = nt*npix;
+      iType const nDiag = iType(npar)*nTot;
+      
       Eigen::SparseMatrix<T,Eigen::RowMajor,iType> Atot = A+LL;
       Eigen::Matrix<T,Eigen::Dynamic,1> dx;
 
-      
+	
+
       // --- get initial solution with a large value of lambda --- //
 
-      if(method != 2)
+      if(method != 2){
 	getInitialSolution(nDiag, iLam, Atot, dx);
-
+      }
       
       
       // --- damp diagonal and get correction --- //
@@ -210,15 +213,13 @@ namespace spa{
       
       // --- Check corrections --- //
       
-	for(iType tt=0; tt<nt; ++tt){
-	  for(iType ipix = 0; ipix<npix; ++ipix){
-	    iType const tpix = (tt*npix+ipix)*npar;
-	    for(iType pp=0; pp<npar; ++pp){
-	      m[tpix+pp] += dx[tpix+pp];
-	      cont.Pinfo[pp].CheckNormalized(m[tpix+pp]);
-	    } // ipix
-	  } // tt
+      for(iType tpix=0; tpix<nTot; ++tpix){
+	for(iType pp=0; pp<npar; ++pp){
+	  m[tpix*npar+pp] += dx[tpix*npar+pp];
+	  cont.Pinfo[pp].CheckNormalized(m[tpix*npar+pp]);
 	} // pp
+      } // tpix
+
 	
 
 	
@@ -318,7 +319,7 @@ namespace spa{
 
     T fitData(container<T> const& cont, int const npar, T* __restrict__ bestModel,
 	      T* __restrict__ bestSyn, int const max_iter = 20, T iLam = 10,
-	      T const Chi2_thres = 1.0, T const fx_thres = 1.e-3, int const delay_braket = 2,
+	      T const Chi2_thres = 1.0, T const fx_thres = 1.e-3, int delay_braket = 2,
 	      bool verbose = true, int const method = 0)
     {
       int const nthreads = int(cont.Me.size());
@@ -346,6 +347,8 @@ namespace spa{
       T* const __restrict__ m   = new T [npix*npar]();
       
 
+      std::vector<T> lambdas(max_iter, T(0));
+      
       
       // --- check pars --- //
 
@@ -427,16 +430,27 @@ namespace spa{
 	  bestChi2 = chi2;
 
 	  std::memcpy(bestModel,   m, npar*npix*sizeof(T));
-
+	  lambdas[iter] = iLam;
 
 	  if(!do_bracket)
 	    if(iLam*1.00001 > minLam)
 	      iLam = checkLambda(iLam/facLam, minLam, maxLam);
 	    else
 	      iLam *= facLam*facLam;
-	  else
-	    iLam = facLam*facLam*iLam;
-	    	    
+	  else{
+	    if(iter > 2){
+	      int repeated = 0;
+	      for(int ii=iter-2; ii<=iter; ++ii)
+		if(lambdas[ii] == minLam) repeated += 1;
+
+	      if(repeated == 3)
+		iLam = 1.0;
+	      else
+		iLam = facLam*facLam*facLam*iLam;
+	    }else{
+	      iLam = facLam*facLam*iLam;
+	    }
+	  }	    
 	  if(dfx < fx_thres){
 	    if(tooSmall) quit = true;
 	    else tooSmall = true;
@@ -448,7 +462,8 @@ namespace spa{
 	  iLam = checkLambda(iLam*SQ<T>(facLam), minLam, maxLam);
 	  n_rejected += 1;
 	  if(verbose)
-	    fprintf(stderr,"lms::fitData: ----> Chi2=%s > %s -> Increasing lambda %f -> %f\n",  chi2.formatted().c_str(), bestChi2.formatted().c_str(), oLam, iLam);
+	    fprintf(stderr,"lms::fitData: ----> Chi2=%s > %s -> Increasing lambda %f -> %f\n",
+		    chi2.formatted().c_str(), bestChi2.formatted().c_str(), oLam, iLam);
 	  
 	  if(n_rejected<max_n_reject) continue;
 	  

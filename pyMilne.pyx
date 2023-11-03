@@ -73,9 +73,9 @@ cdef extern from "wrapper_tools.hpp" namespace "wr":
     cdef void InvertManyf "wr::InvertMany<float>"(vector[Milne[float]]& ME, float* m, float* stokes, float* obs, float* sig, float* chi2, long ny, long nx, long nDat, int nRandom, int niter, float chi2_thres, float mu, bool verbose)
 
     
-    cdef float invert_spatially_regularized_float "wr::invert_spatially_regularized<float>"(long nt, long ny, long nx, long  ndat, vector[Milne[float]] &ME,  float*  m, float* obs, float* syn, float*  sig, int method, int nIter, float chi2_thres, float  mu, float iLam,  float*  alphas,  float*  alphas_time, int  delay_bracket)
+    cdef float invert_spatially_regularized_float "wr::invert_spatially_regularized<float>"(long nt, long ny, long nx, long  ndat, vector[Milne[float]] &ME,  float*  m, float* obs, float* syn, float*  sig, int method, int nIter, float chi2_thres, float  mu, float iLam,  float*  alphas,  float*  alphas_time, float* betas, int  delay_bracket)
     
-    cdef double invert_spatially_regularized_double "wr::invert_spatially_regularized<double>"(long nt, long ny, long nx, long  ndat, vector[Milne[double]] &ME,  double*  m, double* obs, double* syn, double*  sig, int method, int nIter, double chi2_thres, double  mu, double iLam,  double*  alphas, double*  alphas_time, int delay_bracket)
+    cdef double invert_spatially_regularized_double "wr::invert_spatially_regularized<double>"(long nt, long ny, long nx, long  ndat, vector[Milne[double]] &ME,  double*  m, double* obs, double* syn, double*  sig, int method, int nIter, double chi2_thres, double  mu, double iLam,  double*  alphas, double*  alphas_time, double* betas, int delay_bracket)
 
 # ********************************************************************************
 
@@ -403,7 +403,7 @@ cdef class pyMilne:
         return res
 
 
-    def invert_spatially_regularized(self, ar[double,ndim=4] m, ar[double,ndim=5] obs, ar[double,ndim=2] sig, ar[double,ndim=1] alphas, ar[double,ndim=1] alphas_time, double mu = 1.0, int nRandom  = 1, int nIter = 20, double chi2_thres = 1.0, verbose = True, int method = 0, double iLam = 10, int delay_bracket = 2):
+    def invert_spatially_regularized(self, ar[double,ndim=4] m, ar[double,ndim=5] obs, ar[double,ndim=2] sig, ar[double,ndim=1] alphas, ar[double,ndim=1] alphas_time, ar[double,ndim=1] betas, double mu = 1.0, int nRandom  = 1, int nIter = 20, double chi2_thres = 1.0, verbose = True, int method = 0, double iLam = 10, int delay_bracket = 2):
 
         #
         # Dimensions
@@ -434,7 +434,7 @@ cdef class pyMilne:
         #
         # invert pixels
         #                                                              
-        chi2 = invert_spatially_regularized_double(nt, ny, nx, nDat, self.Me,  <double*>m.data, <double*>obs.data, <double*>syn.data, <double*>sig.data, <int>method, <int>nIter, <double>chi2_thres, <double>mu, <double>iLam,  <double*>alphas.data,  <double*>alphas_time.data,<int>delay_bracket)
+        chi2 = invert_spatially_regularized_double(nt, ny, nx, nDat, self.Me,  <double*>m.data, <double*>obs.data, <double*>syn.data, <double*>sig.data, <int>method, <int>nIter, <double>chi2_thres, <double>mu, <double>iLam,  <double*>alphas.data,  <double*>alphas_time.data, <double*>betas.data, <int>delay_bracket)
                                                                         
         
         return m, syn, chi2                                                                        
@@ -667,7 +667,7 @@ cdef class pyMilne_float:
             
         return res
 
-    def invert_spatially_regularized(self, ar[float,ndim=4] m, ar[float,ndim=5] obs, ar[float,ndim=2] sig, ar[float,ndim=1] alphas, ar[float,ndim=1] alphas_time, float mu = 1.0,  int nIter = 20, float chi2_thres = 1.0,  int method = 0, float iLam = 10, int delay_bracket = 2):
+    def invert_spatially_regularized(self, ar[float,ndim=4] m, ar[float,ndim=5] obs, ar[float,ndim=2] sig, ar[float,ndim=1] alphas, ar[float,ndim=1] alphas_time, ar[float,ndim=1] betas, float mu = 1.0,  int nIter = 20, float chi2_thres = 1.0,  int method = 0, float iLam = 10, int delay_bracket = 2):
 
         #
         # Dimensions
@@ -698,7 +698,7 @@ cdef class pyMilne_float:
         #
         # invert pixels
         #                                                              
-        chi2 = invert_spatially_regularized_float(nt, ny, nx, nDat, self.Me,  <float*>m.data, <float*>obs.data, <float*>syn.data, <float*>sig.data, <int>method, <int>nIter, <float>chi2_thres, <float>mu, <float>iLam,  <float*>alphas.data, <float*>alphas_time.data, <int>delay_bracket)
+        chi2 = invert_spatially_regularized_float(nt, ny, nx, nDat, self.Me,  <float*>m.data, <float*>obs.data, <float*>syn.data, <float*>sig.data, <int>method, <int>nIter, <float>chi2_thres, <float>mu, <float>iLam,  <float*>alphas.data, <float*>alphas_time.data, <float*>betas.data, <int>delay_bracket)
                                                                         
         
         return m, syn, chi2                                                                        

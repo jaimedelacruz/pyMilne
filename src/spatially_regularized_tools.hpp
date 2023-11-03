@@ -79,16 +79,20 @@ namespace spa{
     T limits[2];
     T alpha;
     T alpha_t;
+    T beta;
 
-    Par(): isCyclic(false), limited(false), scale(1.0), limits{0,0}, alpha(0), alpha_t(0){};
-    Par(bool const cyclic, bool const ilimited, T const scal, T const mi, T const ma, T const alp, T const alpt):
-      isCyclic(cyclic), limited(ilimited), scale(scal), limits{mi,ma}, alpha(alp), alpha_t(alpt){};
+    Par(): isCyclic(false), limited(false), scale(1.0), limits{0,0}, alpha(0), alpha_t(0), beta(0){};
+    Par(bool const cyclic, bool const ilimited, T const scal, T const mi, T const ma, T const alp, T const alpt, T const bet):
+      isCyclic(cyclic), limited(ilimited), scale(scal), limits{mi,ma}, alpha(alp), alpha_t(alpt), beta(bet){};
 
-    Par(Par<T> const& in): isCyclic(in.isCyclic) ,limited(in.limited), scale(in.scale), limits{in.limits[0], in.limits[1]}, alpha(in.alpha), alpha_t(in.alpha_t){};
+    Par(Par<T> const& in):
+      isCyclic(in.isCyclic) ,limited(in.limited), scale(in.scale), limits{in.limits[0],
+      in.limits[1]}, alpha(in.alpha), alpha_t(in.alpha_t), beta(in.beta){};
 
     Par<T> &operator=(Par<T> const& in)
     {
-      isCyclic = in.isCyclic, limited = in.limited, scale=in.scale, limits[0]=in.limits[0], limits[1]=in.limits[1], alpha = in.alpha, alpha_t=in.alpha_t;
+      isCyclic = in.isCyclic, limited = in.limited, scale=in.scale, limits[0]=in.limits[0];
+      limits[1]=in.limits[1], alpha = in.alpha, alpha_t=in.alpha_t, beta=in.beta;
       return *this;
     }
 
@@ -196,7 +200,7 @@ namespace spa{
       long const ntot = npix*nt;
       long const nwav = inDat / 4;
       double meanpwe = 0.0;
-      
+      long nsum=0;
       
       for(long ii = 0; ii<ntot; ++ii){
 	
@@ -206,17 +210,20 @@ namespace spa{
 	for(long jj=0; jj<nwav;++jj){
 	  sum += iI[jj];
 	}
+
+	sum /= nwav;
 	
 	if(sum < 1.e-6){
 	  pwe[ii] = 1.e32;// intensity is zero, ignore pixel
 	}else{
-	  pwe[ii] = std::abs(sum / nwav);
+	  pwe[ii] = std::abs(sum);
 	  meanpwe += pwe[ii];
+	  ++nsum;
 	}
       }
 
-      meanpwe /= npix;
-      pwe = (T(meanpwe) / pwe).sqrt();
+      T const mpwe = meanpwe/nsum;
+      pwe = (mpwe / pwe).sqrt();
       
     }
     
@@ -276,9 +283,9 @@ namespace spa{
 	
 	for(long tt=0; tt<nt1; ++tt)
 	  for(long ipix=0; ipix<npix; ++ipix){
-	    long const off = (tt*npix+ipix)*nPar;
+	    long const off = (tt*npix+ipix)*nPar+pp;
 	    
-	    T &iPar = par[off + pp];
+	    T &iPar = par[off];
 	    iPar = std::min<T>(std::max<T>(iPar, imin), imax);
 	  } //xx
       } // pp
@@ -360,7 +367,7 @@ namespace spa{
 	for(tt=0; tt<nt;++tt){
 	  for(ipix=0; ipix<npix; ++ipix){
 	    
-	    chi2[tid] += ksum2<T,long double>(ndat, r[(tt*npix+ipix)*ndat]);
+	    chi2[tid] += ksum2<T,long double>(ndat, &r[(tt*npix+ipix)*ndat]);
 	    
 	  } // ipix
 	} // tt
@@ -385,20 +392,25 @@ namespace spa{
       
       // --- how many penalty functions do we need? Npixels-1 have penalties, (0,0) doesn't ---//
 
-      long const nPen = 3*npix*npar*nt; //
+      long const nPen = 4*npix*npar*nt; //
       T const sqr_nPen = sqrt(T(nPen));
-      Eigen::Matrix<T,Eigen::Dynamic,1> Gam(nPen); Gam.setZero();
+
+      Eigen::Matrix<T,Eigen::Dynamic,1> Gam(nPen);
+      Gam.setZero();
+
       Eigen::TensorMap<Eigen::Tensor<T,4,Eigen::RowMajor>> m(par, nt, ny, nx, npar);
       T const normAzi = 3.1415926 / Pinfo[2].scale;
 
       // --- Scaling factors are sqrt-ed so when squared we get the right number --- //
       
-      T* const  __restrict__ sq_alpha = new T [npar]();
+      T* const  __restrict__ sq_alpha  = new T [npar]();
       T* const  __restrict__ sq_alphat = new T [npar]();
+      T* const  __restrict__ sq_beta   = new T [npar]();
 
       for(long ii=0; ii<npar; ++ii){
-	sq_alpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
+	sq_alpha[ii]  = sqrt(Pinfo[ii].alpha)   / sqr_nPen;
 	sq_alphat[ii] = sqrt(Pinfo[ii].alpha_t) / sqr_nPen;
+	sq_beta[ii]   = sqrt(Pinfo[ii].beta)    / sqr_nPen;
       }
       
 #pragma omp parallel default(shared) num_threads(nthreads)      
@@ -407,9 +419,9 @@ namespace spa{
 	for(long idat=0; idat<nTot; ++idat){
 	  
 	  long const tt = idat / npix;
-	  long const rest = idat - tt*npix;
-	  long const yy = rest / nx;
-	  long const xx = rest - yy*nx;  
+	  long const ipix = idat - tt*npix;
+	  long const yy = ipix / nx;
+	  long const xx = ipix - yy*nx;  
 	  long const off = idat*npar;
 	  
 	  
@@ -417,7 +429,7 @@ namespace spa{
 	  
 	  if(tt > 0){
 	    for(long pp=0; pp<npar; ++pp){
-	      Gam[(off+pp)*3] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
+	      Gam[(off+pp)*4] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
 	    }
 	    
 	    // --- check azimuth --- //
@@ -425,8 +437,8 @@ namespace spa{
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
 	    
-	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*3] =  sq_alphat[pp]*(azi-normAzi);
-	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*3] =  sq_alphat[pp]*(azi+normAzi);
+	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4] =  sq_alphat[pp]*(azi-normAzi);
+	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4] =  sq_alphat[pp]*(azi+normAzi);
 	    
 	  } // tt > 0
 	  
@@ -435,15 +447,15 @@ namespace spa{
 	  
 	  if(yy > 0){
 	    for(long pp=0; pp<npar; ++pp)
-	      Gam[(off+pp)*3+1] += sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
+	      Gam[(off+pp)*4+1] += sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
 	    
 	    // --- check azimuth --- //
 	    
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
 	    
-	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*3+1] =  sq_alpha[pp]*(azi-normAzi);
-	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*3+1] =  sq_alpha[pp]*(azi+normAzi);
+	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4+1] =  sq_alpha[pp]*(azi-normAzi);
+	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4+1] =  sq_alpha[pp]*(azi+normAzi);
 	  }
 	  
 	  
@@ -451,7 +463,7 @@ namespace spa{
 	  
 	  if((xx-1) >= 0){
 	    for(long pp=0; pp<npar; ++pp)
-	      Gam[(off+pp)*3+2] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
+	      Gam[(off+pp)*4+2] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
 	    
 	    
 	    // --- check azimuth --- //
@@ -459,14 +471,24 @@ namespace spa{
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
 	    
-	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*3+2] =  sq_alpha[pp]*(azi-normAzi);
-	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*3+2] =  sq_alpha[pp]*(azi+normAzi);
+	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4+2] =  sq_alpha[pp]*(azi-normAzi);
+	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4+2] =  sq_alpha[pp]*(azi+normAzi);
 	  }
+
+
+	  // --- Local low-norm --- //
+	  
+	  for(long pp=0; pp<npar; ++pp)
+	    Gam[(off+pp)*4+3] = sq_beta[pp] * m(tt,yy,xx,pp);
+	  
+	  
+	  
 	} // ipix
       }// parallel
       
       delete [] sq_alpha;
       delete [] sq_alphat;
+      delete [] sq_beta;
 
       return Gam;
     }
@@ -529,34 +551,35 @@ namespace spa{
       
       iType const npix = nx*ny;
       iType const Nx = nx;
-      //iType const Ny = ny;
       iType const Nt = nt;
       iType const nthreads = Me.size();
       iType const nTot = npix*nt;
 
-      iType const nPen = 3*npix*npar*Nt;
+      iType const nPen = 4*nTot*npar;
       T const sqr_nPen = sqrt(T(nPen));
       
       std::vector<T> iAlpha(npar, T(0));
       std::vector<T> iAlphat(npar, T(0));
+      std::vector<T> iBeta(npar, T(0));
 
       for(long ii=0;ii<npar; ++ii){
-	iAlpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
+	iAlpha[ii]  = sqrt(Pinfo[ii].alpha)   / sqr_nPen;
 	iAlphat[ii] = sqrt(Pinfo[ii].alpha_t) / sqr_nPen;
+	iBeta[ii]   = sqrt(Pinfo[ii].beta)    / sqr_nPen;
       }
       
 	
       // --- get matrix dimensions --- //
 
-      long const nrows = 3*npar*npix*Nt; // Some of them are zero at the edge of the domain, but anyhow...
-      long const ncols =   npar*npix*Nt;
+      long const nrows = nPen; // Some of them are zero at the edge of the domain, but anyhow...
+      long const ncols = npar*npix*Nt;
 
       Eigen::SparseMatrix<T,Eigen::RowMajor, iType> L(nrows, ncols);
 
       
       // --- Get number of elements per row --- //
 
-      long const Elements_per_row = 2; // We only have two non-zero elements per Reg function
+      long const Elements_per_row = 2; // We only have two non-zero elements per Reg function at most
       Eigen::VectorXi nElements_per_row = Eigen::VectorXi::Constant(nrows, Elements_per_row); // 1D vector of integers
 
 
@@ -582,14 +605,11 @@ namespace spa{
 	  
 	  // --- Each thread fills all regularization derivatives for one pixel (all parameters) --- //
 	  
-
-	  
-	  
 	  // -- Time-reg --- //
 	  
 	  if(tt > 0){
 	    for(long pp=0; pp<npar; ++pp){
-	      long const y = (off+pp)*3;
+	      long const y = (off+pp)*4;
 	      
 	      L.insert(y,((tt-1)*npix+ipix)*npar+pp) -= iAlphat[pp];
 	      L.insert(y,off+pp)                     += iAlphat[pp];
@@ -602,7 +622,7 @@ namespace spa{
 	  
 	  if(yy > 0){
 	    for(long pp=0; pp<npar; ++pp){
-	      long const y = (off+pp)*3;
+	      long const y = (off+pp)*4;
 	      
 	      L.insert(y+1,(tt*npix+(yy-1)*nx+xx)*npar+pp) -= iAlpha[pp];
 	      L.insert(y+1,off+pp)                         += iAlpha[pp];
@@ -614,11 +634,19 @@ namespace spa{
 	  
 	  if(xx > 0){
 	    for(long pp=0; pp<npar; ++pp){
-	      long const y = (off+pp)*3;
+	      long const y = (off+pp)*4;
 	      
 	      L.insert(y+2,(tt*npix+yy*nx+xx-1)*npar+pp) -= iAlpha[pp];
 	      L.insert(y+2,off+pp)                       += iAlpha[pp];
 	    }
+	  }
+
+
+	  // --- low-norm --- //
+	  
+	  for(long pp=0; pp<npar; ++pp){
+	    long const y = (off+pp)*4;
+	    L.insert(y+3,off+pp)                       += iBeta[pp];
 	  }
 	  
 	} // ipix
@@ -626,8 +654,8 @@ namespace spa{
       
       return L;
     }
-    
-    };
+
+  };
 }
 
 #endif

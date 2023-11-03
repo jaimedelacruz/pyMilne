@@ -27,7 +27,7 @@ void spa::InitDataContainer(long const ny, long const nx,
   
   for(int ii=0; ii<npar;++ii)
     dat.Pinfo.emplace_back(spa::Par<T>(((ii == 2)? true: false), true, ml::pscl<T>[ii],
-				       ml::pmin<T>[ii], ml::pmax<T>[ii], alpha[ii], T(0)));
+				       ml::pmin<T>[ii], ml::pmax<T>[ii], alpha[ii], T(0), T(0)));
 
   
   // --- Fill other quantities --- //

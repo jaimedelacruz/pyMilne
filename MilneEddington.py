@@ -371,6 +371,7 @@ class MilneEddington:
     def invert_spatially_regularized(self, model, obs, sig = 1.e-3, mu = 1.0, nIter = 20, chi2_thres = 1.0,
                                      alpha=1.0, alphas=np.ones(9,dtype='float32'),
                                      alpha_time=1.0, alphas_time=np.ones(9,dtype='float32'),
+                                     betas = np.zeros(9, dtype='float32'),
                                      method = 1, delay_bracket = 3):
         """
         invert_spatially_regularized observations acquired at a given mu angle
@@ -385,6 +386,7 @@ class MilneEddington:
        x alpha_time: global time regularization weight that multiplies the value of "alphas_time" (default = 1).   
              alphas: the relative scaling of regularization weights for each parameter (default = 1).
         alphas_time: the relative scaling of regularization weights for each parameter in time (default = 1).
+              betas: low-norm regularization weight (default = 0).   
              method: Numerical method to solve the sparse system: 0) Conjugate Gradient, 1) BiCGStab, 2) SparseLU (default 1)
       delay_bracket: Delay optimal lambda bracketing for this number of iterations. Avoids taking too large steps in the initial iterations.
         The model parameters are: [|B| [G], inc [rad], azi [rad], vlos [km/s], vDop [\AA], eta_l, damp, S0, S1]
@@ -472,16 +474,18 @@ class MilneEddington:
         #
         alphas_in = np.zeros(9,dtype=dtype)
         alphas_time_in = np.zeros(9,dtype=dtype)
+        betas_in = np.zeros(9,dtype=dtype)
 
         for ii in range(9):
             alphas_in[ii] = alpha * alphas[ii]
             alphas_time_in[ii] = alpha_time * alphas_time[ii]
+            betas_in[ii] = betas[ii]
 
         
         #
         # Call C++ module
         #
-        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, alphas_time_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
+        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, alphas_time_in, betas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
     
 
     # *************************************************************************************************
@@ -541,7 +545,6 @@ class MilneEddington:
         for ii in range(9):
             alphas_in[ii] = alpha * alphas[ii]
             alphast_in[ii] = alpha_time * alphas_time[ii]
-
 
         
 
