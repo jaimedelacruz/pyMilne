@@ -145,11 +145,14 @@ namespace spa{
       
       // --- damp diagonal with a large value and get correction --- //
       
-      T const one_ilam = ((iLam <= 20) ? T(1) + 20 : T(1)+iLam);
+      T one_ilam = T(1);
+      
+      if(iLam >= T(10))    one_ilam +=  iLam*2;
+      else if(iLam > T(1)) one_ilam +=  T(10) + iLam;
+      else                 one_ilam +=  T(1)  + iLam;
       
       for(iType kk =0; kk<nDiag; ++kk)
 	Atot.coeffRef(kk,kk) *= one_ilam;
-
 
       Eigen::BiCGSTAB<Eigen::SparseMatrix<T,Eigen::RowMajor,iType>> solver(Atot);
       dx = solver.solve(B);
@@ -327,7 +330,7 @@ namespace spa{
       Eigen::setNbThreads(nthreads);
 
       static constexpr T const facLam = 2.75;
-      static constexpr T const maxLam = 1000.;
+      static constexpr T const maxLam = 1E4;
       static constexpr T const minLam =  1e-4;
       static constexpr int const max_n_reject = 6;
 
@@ -443,8 +446,10 @@ namespace spa{
 	      for(int ii=iter-2; ii<=iter; ++ii)
 		if(lambdas[ii] == minLam) repeated += 1;
 
-	      if(repeated == 3)
-		iLam = 1.0;
+	      if(repeated == 3){
+		iLam = 1;
+		lambdas[iter] = 1;
+	      }
 	      else
 		iLam = facLam*facLam*facLam*iLam;
 	    }else{

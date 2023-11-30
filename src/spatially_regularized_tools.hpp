@@ -17,6 +17,8 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
+#include "phyc.h"
+
 namespace spa{
 
   // ************************************************************** //
@@ -110,7 +112,7 @@ namespace spa{
       if(!limited) return;
       if(isCyclic){
 	if(val > limits[1]) val -= 3.1415926f;
-	if(val < limits[0]) val += 3.1416026f;
+	if(val < limits[0]) val += 3.1415926f;
       }
       val = std::max<T>(std::min<T>(val, limits[1]),limits[0]);
     }
@@ -392,7 +394,7 @@ namespace spa{
       
       // --- how many penalty functions do we need? Npixels-1 have penalties, (0,0) doesn't ---//
 
-      long const nPen = 4*npix*npar*nt; //
+      long const nPen = 4*nTot*npar; // maximum number of penalty functions per pixel
       T const sqr_nPen = sqrt(T(nPen));
 
       Eigen::Matrix<T,Eigen::Dynamic,1> Gam(nPen);
@@ -401,6 +403,7 @@ namespace spa{
       Eigen::TensorMap<Eigen::Tensor<T,4,Eigen::RowMajor>> m(par, nt, ny, nx, npar);
       T const normAzi = 3.1415926 / Pinfo[2].scale;
 
+      
       // --- Scaling factors are sqrt-ed so when squared we get the right number --- //
       
       T* const  __restrict__ sq_alpha  = new T [npar]();
@@ -429,7 +432,7 @@ namespace spa{
 	  
 	  if(tt > 0){
 	    for(long pp=0; pp<npar; ++pp){
-	      Gam[(off+pp)*4] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
+		Gam[(off+pp)*4] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
 	    }
 	    
 	    // --- check azimuth --- //
@@ -461,7 +464,7 @@ namespace spa{
 	  
 	  // --- spatial-reg (x-axis) --- //
 	  
-	  if((xx-1) >= 0){
+	  if(xx > 0){
 	    for(long pp=0; pp<npar; ++pp)
 	      Gam[(off+pp)*4+2] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
 	    
@@ -480,8 +483,12 @@ namespace spa{
 	  
 	  for(long pp=0; pp<npar; ++pp)
 	    Gam[(off+pp)*4+3] = sq_beta[pp] * m(tt,yy,xx,pp);
+
 	  
-	  
+	  // --- in the case of inclination, prefer vertical fields --- //
+
+	  T const quant = ((m(tt,yy,xx,1) <= phyc::PI/T(2)) ? T(0) : phyc::PI);
+	  Gam[(off+1)*4+3] -= sq_beta[1] * quant;
 	  
 	} // ipix
       }// parallel
@@ -553,7 +560,7 @@ namespace spa{
       iType const Nx = nx;
       iType const Nt = nt;
       iType const nthreads = Me.size();
-      iType const nTot = npix*nt;
+      iType const nTot = npix*Nt;
 
       iType const nPen = 4*nTot*npar;
       T const sqr_nPen = sqrt(T(nPen));
@@ -599,7 +606,7 @@ namespace spa{
 	  long const tt = idat / npix;
 	  long const ipix = idat - tt*npix;
 	  long const yy = ipix / Nx;
-	  long const xx = ipix - yy*Nx;  
+	  long const xx = ipix - yy*Nx; 
 	  long const off = idat*npar;
 	  
 	  
@@ -611,8 +618,8 @@ namespace spa{
 	    for(long pp=0; pp<npar; ++pp){
 	      long const y = (off+pp)*4;
 	      
-	      L.insert(y,((tt-1)*npix+ipix)*npar+pp) -= iAlphat[pp];
-	      L.insert(y,off+pp)                     += iAlphat[pp];
+	      L.insert(y,((tt-1)*npix+ipix)*npar+pp) = -iAlphat[pp];
+	      L.insert(y,off+pp)                     = iAlphat[pp];
 	      
 	    }
 	  } // tt > 0
@@ -624,8 +631,8 @@ namespace spa{
 	    for(long pp=0; pp<npar; ++pp){
 	      long const y = (off+pp)*4;
 	      
-	      L.insert(y+1,(tt*npix+(yy-1)*nx+xx)*npar+pp) -= iAlpha[pp];
-	      L.insert(y+1,off+pp)                         += iAlpha[pp];
+	      L.insert(y+1,(tt*npix+(yy-1)*nx+xx)*npar+pp) = -iAlpha[pp];
+	      L.insert(y+1,off+pp)                         = iAlpha[pp];
 	    }
 	  }
 	  
@@ -636,8 +643,8 @@ namespace spa{
 	    for(long pp=0; pp<npar; ++pp){
 	      long const y = (off+pp)*4;
 	      
-	      L.insert(y+2,(tt*npix+yy*nx+xx-1)*npar+pp) -= iAlpha[pp];
-	      L.insert(y+2,off+pp)                       += iAlpha[pp];
+	      L.insert(y+2,(tt*npix+yy*nx+xx-1)*npar+pp) = -iAlpha[pp];
+	      L.insert(y+2,off+pp)                       = iAlpha[pp];
 	    }
 	  }
 
@@ -646,7 +653,7 @@ namespace spa{
 	  
 	  for(long pp=0; pp<npar; ++pp){
 	    long const y = (off+pp)*4;
-	    L.insert(y+3,off+pp)                       += iBeta[pp];
+	    L.insert(y+3,off+pp)                       = iBeta[pp];
 	  }
 	  
 	} // ipix
