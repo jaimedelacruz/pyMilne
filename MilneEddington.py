@@ -18,11 +18,14 @@ class MilneEddington:
     # *************************************************************************************************
 
     def _initLine(self, label, anomalous, dw, precision):
+
+        # 6302 log gf from Socas-Navarro (2011), the rest from VALD.
+        
         if(precision == 'float64'):
             if(label == 6301):
                 return pyMilne.pyLines(j1 = 2.0, j2 = 2.0, g1 = 1.84, g2 = 1.50, cw = 6301.4995, gf = 10.**-0.718, anomalous = anomalous, dw = dw)
             elif(label == 6302):
-                return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-0.968, anomalous = anomalous, dw = dw)
+                return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-1.160, anomalous = anomalous, dw = dw)
             elif(label == 6173):
                 return pyMilne.pyLines(j1 = 1.0, j2 = 0.0, g1 = 2.50, g2 = 0.00, cw = 6173.3340, gf = 10.**-2.880, anomalous = anomalous, dw = dw)
             else:
@@ -32,7 +35,7 @@ class MilneEddington:
             if(label == 6301):
                 return pyMilne.pyLinesf(j1 = 2.0, j2 = 2.0, g1 = 1.84, g2 = 1.50, cw = 6301.4995, gf = 10.**-0.718, anomalous = anomalous, dw = dw)
             elif(label == 6302):
-                return pyMilne.pyLinesf(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-0.968, anomalous = anomalous, dw = dw)
+                return pyMilne.pyLinesf(j1 = 1.0, j2 = 0.0, g1 = 2.49, g2 = 0.00, cw = 6302.4931, gf = 10.**-1.160, anomalous = anomalous, dw = dw)
             elif(label == 6173):
                 return pyMilne.pyLinesf(j1 = 1.0, j2 = 0.0, g1 = 2.50, g2 = 0.00, cw = 6173.3340, gf = 10.**-2.880, anomalous = anomalous, dw = dw)
             else:
@@ -133,6 +136,7 @@ class MilneEddington:
         if(not isContiguous or model1.dtype != dtype):
             model1 = np.ascontiguousarray(model1, dtype=dtype)
 
+        
             
             
         return self.Me.synthesize(model1, mu=mu)
@@ -167,7 +171,7 @@ class MilneEddington:
         """
         ndim = len(model.shape)
         dtype = self._get_dtype()
-                
+        
         if(ndim == 1):
             model1 = np.ascontiguousarray(model.reshape((1,1,model.size)), dtype=dtype)
         elif(ndim == 3):
@@ -184,7 +188,7 @@ class MilneEddington:
         if(not isContiguous or model1.dtype != dtype):
             model1 = np.ascontiguousarray(model1, dtype=dtype)
 
-            
+
             
         return self.Me.synthesize_RF(model1, mu=mu)
 
@@ -279,6 +283,7 @@ class MilneEddington:
             sig1[:] = sig  
             
             
+
         #
         # Call C++ module
         #
@@ -372,7 +377,7 @@ class MilneEddington:
                                      alpha=1.0, alphas=np.ones(9,dtype='float32'),
                                      alpha_time=1.0, alphas_time=np.ones(9,dtype='float32'),
                                      betas = np.zeros(9, dtype='float32'),
-                                     method = 1, delay_bracket = 3):
+                                     method = 1, delay_bracket = 3, init_lambda = 10.0):
         """
         invert_spatially_regularized observations acquired at a given mu angle
         Arguments:
@@ -472,20 +477,20 @@ class MilneEddington:
         #
         # make alphas
         #
-        alphas_in = np.zeros(9,dtype=dtype)
+        alphas_in      = np.zeros(9,dtype=dtype)
         alphas_time_in = np.zeros(9,dtype=dtype)
-        betas_in = np.zeros(9,dtype=dtype)
+        betas_in       = np.zeros(9,dtype=dtype)
 
         for ii in range(9):
-            alphas_in[ii] = alpha * alphas[ii]
+            alphas_in[ii]      = alpha * alphas[ii]
             alphas_time_in[ii] = alpha_time * alphas_time[ii]
-            betas_in[ii] = betas[ii]
+            betas_in[ii]       = betas[ii]
 
         
         #
         # Call C++ module
         #
-        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, alphas_time_in, betas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket)
+        return self.Me.invert_spatially_regularized(model1, obs1, sig1, alphas_in, alphas_time_in, betas_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=method, delay_bracket = delay_bracket, iLam = init_lambda)
     
 
     # *************************************************************************************************
@@ -540,13 +545,11 @@ class MilneEddington:
         # make alphas
         #
         alphas_in = np.zeros(9,dtype=dtype)
-        alphast_in = np.zeros(9,dtype=dtype)
 
         for ii in range(9):
             alphas_in[ii] = alpha * alphas[ii]
-            alphast_in[ii] = alpha_time * alphas_time[ii]
 
         
 
         
-        return self.Me.invert_Spatially_Coupled(model1, spat_regions, alphas_in, alphast_in, mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=0, delay_bracket = delay_bracket, iLam = init_lambda)
+        return self.Me.invert_Spatially_Coupled(model1, spat_regions, alphas_in,  mu=mu, nIter = nIter, chi2_thres = chi2_thres,  method=0, delay_bracket = delay_bracket, iLam = init_lambda)
