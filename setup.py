@@ -19,7 +19,7 @@ if(plt.system() == 'Darwin'):
     CXX= 'clang++'
     link_opts = ["-stdlib=libc++","-bundle","-undefined","dynamic_lookup", "-fopenmp","-lgomp"]
 else:
-    #root_dir = '/usr/'
+    root_dir = '/usr/'
     CC = 'gcc'
     CXX= 'g++'
     link_opts = ["-shared", "-fopenmp"]

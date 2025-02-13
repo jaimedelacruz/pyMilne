@@ -199,5 +199,5 @@ if __name__ == "__main__":
     
     f.set_tight_layout(True)
     print("saving figure with results -> fig_results.pdf")
-    f.savefig('fig_results.pdf', dpi=250, format='pdf', compression=5)
+    f.savefig('fig_results.pdf', dpi=250, format='pdf')
     f.show()
