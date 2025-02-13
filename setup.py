@@ -41,7 +41,7 @@ comp_flags=['-Ofast', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=
 extension = Extension("pyMilne",
                       sources=["pyMilne.pyx", "src/wrapper_tools_spatially_coupled.cpp", "src/lm_sc.cpp", \
                                "src/spatially_coupled_helper.cpp"], 
-                      include_dirs=["./",numpy.get_include(), './eigen3', root_dir+"/include/"],
+                      include_dirs=["./",numpy.get_include(), './eigen3', root_dir+"/include/", root_dir+'/include/eigen3/'],
                       language="c++",
                       extra_compile_args=comp_flags,
                       extra_link_args=comp_flags+link_opts,
