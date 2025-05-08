@@ -511,11 +511,11 @@ cdef class pyMilne:
         
         cdef ar[double,ndim=4] syn = zeros((ny, nx, 4, wav.size()), dtype='float64')
         
-        invert_spatially_coupled(<double*>m.data, \
-				 <double*>syn.data, \
-        			 <int>method, \
-				 <int>nIter, <double>chi2_thres, <double>mu, <double>iLam, \
-        			 <int>delay_bracket, dat);
+        cdef double chi2 = invert_spatially_coupled(<double*>m.data, \
+				                    <double*>syn.data, \
+        			                    <int>method, \
+				                    <int>nIter, <double>chi2_thres, <double>mu, <double>iLam, \
+        			                    <int>delay_bracket, dat);
 
 
         # allocate arrays for degraded spectra
@@ -527,7 +527,7 @@ cdef class pyMilne:
         
         
         
-        return m, syn, syn_deg
+        return m, chi2, syn, syn_deg
 #
 # ******************************************************************************************************
 #
