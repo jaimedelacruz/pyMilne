@@ -75,9 +75,9 @@ if __name__ == "__main__":
 
 
     # invert spatially-coupled with initial guess from pixel-to-pixel (less iterations)
-    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=10, alpha=100., \
-                                     alphas = np.float64([1,1,1,0.01,0.01,0.01,0.01,0.01,0.01]),\
-                                     init_lambda=10.0)
+    m1, chi2, syn, syn_deg = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=10, alpha=100., \
+                                                         alphas = np.float64([1,1,1,0.01,0.01,0.01,0.01,0.01,0.01]),\
+                                                         init_lambda=10.0)
 
     
 
@@ -86,9 +86,9 @@ if __name__ == "__main__":
 
     
     # invert spatially-coupled 
-    m1, chi = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=10., \
-                                          alphas = np.float64([2,2,2,0.01,0.01,0.01,0.01,0.01,0.01]),\
-                                          init_lambda=1.0)
+    m1, chi2, syn, syn_deg = me.invert_spatially_coupled(m, sregion, mu=0.96, nIter=20, alpha=10., \
+                                                         alphas = np.float64([2,2,2,0.01,0.01,0.01,0.01,0.01,0.01]),\
+                                                         init_lambda=1.0)
     
     ut.writeFits("modelout_spatially_coupled.fits", m1)
 
