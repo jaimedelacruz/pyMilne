@@ -148,7 +148,7 @@ namespace spa{
 
     std::string formatted()const{
       char bla[50];
-      sprintf(bla, "%13.5f (%13.5f + %13.5f)", value(), chi2, pen2);
+      snprintf(bla, 50, "%13.5f (%13.5f + %13.5f)", value(), chi2, pen2);
       return std::string(bla);
     }
     
