@@ -2,6 +2,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <cstdio>
+#include <cstring>
 
 #include "spatially_coupled_helper.hpp"
 #include "spatially_coupled_tools.hpp"
@@ -156,5 +157,18 @@ double spa::invert_spatially_coupled(double* const __restrict__ im,
   return chi2.get();
 }
 
+
+//  **************************************************************************************** // 
+
+void spa::copy_regions_synthetic(spa::Data<double,double,long> const &dat, double* const output, int const ii)
+{
+
+  std::shared_ptr<spa::SpatRegion<double,long>> const iRegion = dat.regions[ii];
+
+  long const nEl = iRegion->syn.size();
+  std::memcpy(output,&iRegion->syn[0],nEl*sizeof(double));
+  
+  
+}
 
 //  **************************************************************************************** // 

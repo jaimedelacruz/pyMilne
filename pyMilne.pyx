@@ -98,6 +98,9 @@ cdef extern from "wrapper_tools_spatially_coupled.hpp" namespace "spa":
 
      cdef void init_nData(Data_d &dat);
 
+
+     cdef void copy_regions_synthetic(Data_d &dat, double* const output, int ii)
+     
 #
 # Wrapper cython classes
 #
@@ -230,7 +233,22 @@ cdef addRegionToClass(Data_d &dat, ar[double,ndim=4] obs, ar[double,ndim=2] psf,
                clip_threshold, <double*>&wav[0], <double*>sigma.data, <double*>obs.data, nthreads);
     
     return nw
-    
+#
+# ******************************************************************************************************
+#
+
+cdef extract_syn(Data_d &dat, ar[double,ndim=4] obs, int ii):
+
+    cdef long ny = obs.shape[0]
+    cdef long nx = obs.shape[1]
+    cdef long ns = obs.shape[2]
+    cdef long nw = obs.shape[3]
+
+    cdef ar[double,ndim=4] syn = zeros((ny,nx,ns,nw))
+    copy_regions_synthetic(dat, <double*> syn.data, <int>ii)
+
+    return syn
+
 #
 # ******************************************************************************************************
 #
@@ -500,7 +518,16 @@ cdef class pyMilne:
         			 <int>delay_bracket, dat);
 
 
-        return m, syn
+        # allocate arrays for degraded spectra
+
+        cdef list syn_deg = [None]*nreg
+        
+        for ii in range(nreg):
+            syn_deg[ii] = extract_syn(dat, coupled_regions[ii][0], ii)
+        
+        
+        
+        return m, syn, syn_deg
 #
 # ******************************************************************************************************
 #

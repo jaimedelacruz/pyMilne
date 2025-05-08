@@ -384,6 +384,18 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   dat.synthesize(BestModel, BestSyn);
   dat.ScalePars(BestModel);
 
+  
+  // --- Obtain the degraded spectra for output --- //
+
+      
+  std::vector<std::shared_ptr<spa::SpatRegion<T,ind_t>>> &regions = dat.regions;
+  ind_t const nRegions = regions.size();
+  
+  for(ind_t ii=0; ii<nRegions; ++ii){
+    spa::getResidue<T,ind_t>(*regions[ii].get(), syn, nthreads);
+  }
+
+  
   fprintf(stderr,"\n[info] invert: inversion finalized, Chi2=%le\n", BestChi2.get());
   
   
