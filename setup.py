@@ -18,19 +18,22 @@ if(plt.system() == 'Darwin'):
     CC = 'clang'
     CXX= 'clang++'
     link_opts = ["-stdlib=libc++","-bundle","-undefined","dynamic_lookup", "-fopenmp","-lgomp"]
+    comp_flags= ["-mcpu=native"]
+    
 else:
     root_dir = '/usr/'
     CC = 'gcc'
     CXX= 'g++'
     link_opts = ["-shared", "-fopenmp"]
-
+    comp_flags = ["-march=native"]
+    
 os.environ["CC"] = CC
 os.environ["CXX"] = CXX
 
 
 # Optimization flags. With Macs M-processor remove the -march=native!
 
-comp_flags=['-Ofast', '-flto','-g0','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",'-mprefer-vector-width=256', '-DNDEBUG', '-pedantic', '-Wall']
+comp_flags=['-O3', '-flto','-g0','-fstrict-aliasing','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API", '-DNDEBUG']
 
 
 # Optimization flags for development
