@@ -33,14 +33,14 @@ os.environ["CXX"] = CXX
 
 # Optimization flags. With Macs M-processor remove the -march=native!
 
-comp_flags=['-O3', '-flto','-g0','-fstrict-aliasing','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API", '-DNDEBUG']
+comp_flags += ['-O3', '-flto','-g0','-fstrict-aliasing','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API", '-DNDEBUG']
 
 
 # Optimization flags for development
 
 #comp_flags=['-Og', '-g3','-fstrict-aliasing','-march=native','-mtune=native','-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 
-
+ 
 extension = Extension("pyMilne",
                       sources=["pyMilne.pyx", "src/wrapper_tools_spatially_coupled.cpp", "src/lm_sc.cpp", \
                                "src/spatially_coupled_helper.cpp"], 
