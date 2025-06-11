@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from scipy.interpolate import interpn
 
 # ***********************************************************************************
 
@@ -164,4 +165,17 @@ def smoothModel(m, fwhm):
         res[:,:,ii] = fftconvol2d(res[:,:,ii].squeeze(), psf)
 
     return res
+
 # ***********************************************************************************
+
+def congrid(img, ny1, nx1):
+    ny,nx = img.shape
+
+    x = np.linspace(0,nx1-1,nx)
+    y = np.linspace(0,ny1-1,ny)
+    
+    yo,xo = np.meshgrid(np.arange(ny1), np.arange(nx1), indexing='ij')
+
+    res = interpn((y,x), img, (yo,xo))
+
+    return res
