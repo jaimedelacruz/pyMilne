@@ -392,7 +392,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   ind_t const nRegions = regions.size();
   
   for(ind_t ii=0; ii<nRegions; ++ii){
-    spa::getResidue<T,ind_t>(*regions[ii].get(), syn, nthreads);
+    spa::getResidue<T,ind_t>(*regions[ii].get(), BestSyn, nthreads);
   }
 
   
