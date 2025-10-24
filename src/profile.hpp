@@ -44,7 +44,7 @@ inline T vf(T const& damp, T const& vv,  T &F)
   inline T voigt_complex(T const a, T const v, T &far)
   {
       
-    T const sav = std::abs<T>(v) + a;
+    T const sav = std::abs(v) + a;
     complex<T> const tav(a, -v);
     complex<T> const uav = tav*tav;
     complex<T> w4;
@@ -56,7 +56,7 @@ inline T vf(T const& damp, T const& vv,  T &F)
       w4 = tav * static_cast<T>(0.5641896) / ( static_cast<T>(0.5) + uav);
     } else if(sav >=  static_cast<T>(5.5)){
       w4 = tav * ( static_cast<T>(1.410474) + uav *  static_cast<T>(0.5641896)) / ( static_cast<T>(0.75)+uav * (static_cast<T>(3) + uav));
-    } else if(a >= ( static_cast<T>(0.195) * std::abs<T>(v) -  static_cast<T>(0.176))){
+    } else if(a >= ( static_cast<T>(0.195) * std::abs(v) -  static_cast<T>(0.176))){
       w4 = (static_cast<T>(16.4955) + tav * (static_cast<T>(20.20933) + tav * (static_cast<T>(11.96482) + tav * (static_cast<T>(3.778987) + tav * static_cast<T>(0.5642236))))) / (static_cast<T>(16.4955) + tav * (static_cast<T>(38.82363) + tav * (static_cast<T>(39.27121) + tav * (static_cast<T>(21.69274) + tav * (static_cast<T>(6.699398) + tav)))));
     } else{
       w4 = tav * (static_cast<T>(36183.31) - uav * (static_cast<T>(3321.9905) - uav * (static_cast<T>(1540.787) -  uav * (static_cast<T>(219.0313) - uav * (static_cast<T>(35.76683) - uav * (static_cast<T>(1.320522) - uav * static_cast<T>(0.56419)))))));

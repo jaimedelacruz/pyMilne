@@ -316,10 +316,10 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   
   // --- Get initial Chi2 --- // 
 
-  mem::Array<T,4> syn(dat.ny, dat.nx, dat.ns, dat.nw); syn.Zero();
-  dat.synthesize(m, syn);
+  //mem::Array<T,4> syn(dat.ny, dat.nx, dat.ns, dat.nw); syn.Zero();
+  dat.synthesize(m, BestSyn);
 
-  Chi2_t<T> BestChi2 = spa::getChi2(dat, syn, L, m);
+  Chi2_t<T> BestChi2 = spa::getChi2(dat, BestSyn, L, m);
   Chi2_t<T> Chi2 = BestChi2;
   
   fprintf(stderr,"[info] invert: iter=%3d, Chi2=%13.5f (%e)", 0, Chi2.get(), Chi2.reg);
@@ -385,12 +385,6 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   dat.synthesize(BestModel, BestSyn);
   dat.ScalePars(BestModel);
 
-
-  // --- copy data to syn variable for region degradation --- //
-  
-  size_t const nTot = size_t(dat.ny) * size_t(dat.nx) * size_t(dat.ns) * size_t(dat.nw);
-  std::memcpy(&syn(0,0,0,0), BestSyn, sizeof(T)*nTot);
-  
   
   // --- Obtain the degraded spectra for output --- //
 
@@ -399,7 +393,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   ind_t const nRegions = regions.size();
   
   for(ind_t ii=0; ii<nRegions; ++ii){
-    spa::getResidue<T,ind_t>(*regions[ii].get(), syn, nthreads);
+    spa::getResidue<T,ind_t>(*regions[ii].get(), BestSyn, nthreads);
   }
 
   
