@@ -9,6 +9,7 @@
    --- */
 #include <cmath>
 #include <chrono>
+#include <cstring>
 
 #include <Eigen/IterativeLinearSolvers>
 #include <unsupported/Eigen/IterativeSolvers>
@@ -384,6 +385,12 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   dat.synthesize(BestModel, BestSyn);
   dat.ScalePars(BestModel);
 
+
+  // --- copy data to syn variable for region degradation --- //
+  
+  size_t const nTot = size_t(dat.ny) * size_t(dat.nx) * size_t(dat.ns) * size_t(dat.nw);
+  std::memcpy(&syn(0,0,0,0), BestSyn, sizeof(T)*nTot);
+  
   
   // --- Obtain the degraded spectra for output --- //
 
@@ -392,7 +399,7 @@ spa::Chi2_t<T> LMsc<T,U,ind_t>::invert(spa::Data<T,U,ind_t> &dat, mem::Array<T,3
   ind_t const nRegions = regions.size();
   
   for(ind_t ii=0; ii<nRegions; ++ii){
-    spa::getResidue<T,ind_t>(*regions[ii].get(), BestSyn, nthreads);
+    spa::getResidue<T,ind_t>(*regions[ii].get(), syn, nthreads);
   }
 
   
