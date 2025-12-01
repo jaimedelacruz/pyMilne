@@ -466,22 +466,22 @@ void spa::Data<T,U,ind_t>::CheckPars(mem::Array<T,3> &m)const{
       
       for(ind_t yy=0; yy<ny1; ++yy)
 	for(ind_t xx=0; xx<nx1; ++xx){
-	  T &iPar = m(yy,xx,pp);
+	  T* const iPar = &m(yy,xx,pp);
 	  
-	  if(iPar < imin) iPar += imax;
-	  if(iPar > imax) iPar -= imax;
+	  if(*iPar < imin)  *iPar += imax;
+	  if(*iPar > imax)  *iPar -= imax;
 	  
 	  // --- Just in case, force the parameter to be within limits --- //
 	  
-	  iPar = std::min<T>(std::max<T>(iPar, imin), imax);
+	  *iPar = std::min<T>(std::max<T>(*iPar, imin), imax);
 	  
 	}
       
     }else{ // not cyclic
       for(ind_t yy=0; yy<ny1; ++yy)
 	for(ind_t xx=0; xx<nx1; ++xx){
-	  T &iPar = m(yy,xx,pp);
-	  iPar = std::min<T>(std::max<T>(iPar, imin), imax);
+	  T* const iPar = &m(yy,xx,pp);
+	  *iPar = std::min<T>(std::max<T>(*iPar, imin), imax);
 	} //xx
     }// isCyclic
     
@@ -588,7 +588,7 @@ template Eigen::SparseMatrix<double,Eigen::RowMajor,long> spa::Data<double,doubl
 template<typename T, typename U, typename ind_t>
 Eigen::Matrix<U,Eigen::Dynamic,1> spa::Data<T,U,ind_t>::getGamma(mem::Array<T,3> const& m)const
 {
-  static constexpr const ind_t nC = 2;
+  constexpr const ind_t nC = 2;
   
   ind_t const nthreads = me.size();
   ind_t const nPar = m.shape(2);
@@ -601,7 +601,7 @@ Eigen::Matrix<U,Eigen::Dynamic,1> spa::Data<T,U,ind_t>::getGamma(mem::Array<T,3>
   Eigen::Matrix<U,Eigen::Dynamic,1> Gam(nPen); Gam.setZero();
   
   T const normAzi = 3.14159265358979323846 / Pinfo[2].scale;
-
+  T const PI2 = 0.5 * 3.14159265358979323846 / Pinfo[2].scale; // PI / 2
   
   // --- Scaling factors are sqrt-ed so when squared we get the right number --- //
   
@@ -609,38 +609,76 @@ Eigen::Matrix<U,Eigen::Dynamic,1> spa::Data<T,U,ind_t>::getGamma(mem::Array<T,3>
   for(ind_t ii=0; ii<nPar; ++ii)
     sq_alpha[ii] = sqrt(Pinfo[ii].alpha) / sqr_nPen;
 
+  
+  
 #pragma omp parallel default(shared)  num_threads(nthreads)      
   {
-	//tid = omp_get_thread_num();
+    // --- temporary buffer allocated per-thread (inside the scope of the parallel block) --- //
+    
+    T* const  __restrict__ tmp = new T[nPar]();
+    
 #pragma omp for
     for(ind_t ipix=1; ipix<npix; ++ipix){
       
       ind_t const yy = ipix / nx;
       ind_t const xx = ipix - yy*nx;
+
+
+      // --- Penalty in the y-axis --- //
       
       if((yy-1) >= 0){
-	for(ind_t pp=0; pp<nPar; ++pp)
-	  Gam[ipix*npar*nC + pp*nC] += sq_alpha[pp] * (m(yy,xx,pp) - m(yy-1,xx,pp));
 	
-	// --- check azimuth --- //
-	ind_t pp = 2;
-	T const azi = (m(yy,xx,pp) - m(yy-1,xx,pp));
-	if     (fabs(azi-normAzi) < fabs(azi)) Gam[ipix*npar*nC + pp*nC] =  sq_alpha[pp]*(azi-normAzi);
-	else if(fabs(azi+normAzi) < fabs(azi)) Gam[ipix*npar*nC + pp*nC] =  sq_alpha[pp]*(azi+normAzi);
-      }
+	for(ind_t pp=0; pp<nPar; ++pp){
+	  tmp[pp] = sq_alpha[pp] * (m(yy,xx,pp) - m(yy-1,xx,pp));
+	}
+	
+	// --- check azimuth --- //	
+	{
+	  constexpr const ind_t pp = 2;
+	  T const dazi = (m(yy,xx,pp) - m(yy-1,xx,pp));
+	  if     (dazi > PI2) tmp[pp]  = -sq_alpha[pp]*(normAzi-dazi);
+	  else if(dazi < -PI2) tmp[pp] = sq_alpha[pp]*(normAzi+dazi);
+	}
+
+	// --- add to the penalty function vector --- //
+
+	for(ind_t pp=0; pp<nPar; ++pp)
+	  Gam[ipix*npar*nC + pp*nC] += tmp[pp]; 
+	
+      } // yy term
+
+      // --- Penalty in the x-axis --- //
+
       if((xx-1) >= 0){
-	for(ind_t pp=0; pp<nPar; ++pp)
-	  Gam[ipix*npar*nC + pp*nC + 1] += sq_alpha[pp] * (m(yy,xx,pp) - m(yy,xx-1,pp));
+	
+	for(ind_t pp=0; pp<nPar; ++pp){
+	  tmp[pp] = sq_alpha[pp] * (m(yy,xx,pp) - m(yy,xx-1,pp));
+	}
 	
 	// --- check azimuth --- //
-	ind_t pp = 2;
-	T const azi = (m(yy,xx,pp) - m(yy,xx-1,pp));
-	if     (fabs(azi-normAzi) < fabs(azi)) Gam[ipix*npar*nC + pp*nC + 1] =  sq_alpha[pp]*(azi-normAzi);
-	else if(fabs(azi+normAzi) < fabs(azi)) Gam[ipix*npar*nC + pp*nC + 1] =  sq_alpha[pp]*(azi+normAzi);
-      }
+	
+	{
+	  constexpr const ind_t pp = 2;
+	  T const dazi = (m(yy,xx,pp) - m(yy,xx-1,pp));
+	  if     (dazi > PI2)  tmp[pp] = -sq_alpha[pp]*(normAzi-dazi);
+	  else if(dazi < -PI2) tmp[pp] = sq_alpha[pp]*(normAzi+dazi);
+	}
+
+	// --- add to the penalty function vector --- //
+	
+	for(ind_t pp=0; pp<nPar; ++pp)
+	  Gam[ipix*npar*nC + pp*nC+1] += tmp[pp];
+	
+      } // xx term
       
     }// ipix
-  }// parallel
+
+    
+    // --- clean up the temporary array before exiting parallel block --- //
+    
+    delete [] tmp;
+    
+  }// parallel block
 
   
   delete [] sq_alpha;

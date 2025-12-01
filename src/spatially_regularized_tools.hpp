@@ -111,8 +111,8 @@ namespace spa{
     inline void Check(T &val)const{
       if(!limited) return;
       if(isCyclic){
-	if(val > limits[1]) val -= 3.1415926f;
-	if(val < limits[0]) val += 3.1415926f;
+	if(val > limits[1]) val -= 3.14159265358979323846;
+	if(val < limits[0]) val += 3.14159265358979323846;
       }
       val = std::max<T>(std::min<T>(val, limits[1]),limits[0]);
     }
@@ -418,6 +418,9 @@ namespace spa{
       
 #pragma omp parallel default(shared) num_threads(nthreads)      
       {
+
+	T* const __restrict__ tmp = new T[npar]();
+	
 #pragma omp for
 	for(long idat=0; idat<nTot; ++idat){
 	  
@@ -432,16 +435,29 @@ namespace spa{
 	  
 	  if(tt > 0){
 	    for(long pp=0; pp<npar; ++pp){
-		Gam[(off+pp)*4] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
+	      //Gam[(off+pp)*4] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
+	      tmp[pp] = sq_alphat[pp] * (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
 	    }
 	    
 	    // --- check azimuth --- //
-	    
+	    /*
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
-	    
 	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4] =  sq_alphat[pp]*(azi-normAzi);
 	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4] =  sq_alphat[pp]*(azi+normAzi);
+	    */
+	    
+	    // --- check azimuth --- //
+	    
+	    {
+	      constexpr const ind_t pp = 2;
+	      T const dazi = (m(tt,yy,xx,pp) - m(tt-1,yy,xx,pp));
+	      if     (dazi > PI2) tmp[pp]  = -sq_alphat[pp]*(normAzi-dazi);
+	      else if(dazi < -PI2) tmp[pp] = sq_alphat[pp]*(normAzi+dazi);
+	    }
+
+	    for(long pp=0; pp<npar; ++pp)
+	      Gam[(off+pp)*4] += tmp[pp];
 	    
 	  } // tt > 0
 	  
@@ -450,15 +466,29 @@ namespace spa{
 	  
 	  if(yy > 0){
 	    for(long pp=0; pp<npar; ++pp)
-	      Gam[(off+pp)*4+1] += sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
+	      //Gam[(off+pp)*4+1] += sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
+	      tmp[pp] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
+
 	    
 	    // --- check azimuth --- //
-	    
+	    /*
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
 	    
 	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4+1] =  sq_alpha[pp]*(azi-normAzi);
 	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4+1] =  sq_alpha[pp]*(azi+normAzi);
+	    */
+	    
+	    // --- check azimuth --- //	
+	    {
+	      constexpr const ind_t pp = 2;
+	      T const dazi = (m(tt,yy,xx,pp) - m(tt,yy-1,xx,pp));
+	      if     (dazi > PI2) tmp[pp]  = -sq_alpha[pp]*(normAzi-dazi);
+	      else if(dazi < -PI2) tmp[pp] = sq_alpha[pp]*(normAzi+dazi);
+	    }
+	    
+	    for(long pp=0; pp<npar; ++pp)
+	      Gam[(off+pp)*4+1] += tmp[pp];
 	  }
 	  
 	  
@@ -466,16 +496,29 @@ namespace spa{
 	  
 	  if(xx > 0){
 	    for(long pp=0; pp<npar; ++pp)
-	      Gam[(off+pp)*4+2] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
-	    
+	      //Gam[(off+pp)*4+2] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
+	      tmp[pp] = sq_alpha[pp] * (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
+
 	    
 	    // --- check azimuth --- //
-	    
+	    /*
 	    long const pp = 2;
 	    T const azi = (m(tt,yy,xx,pp) - m(tt,yy,xx-1,pp));
-	    
 	    if     (fabs(azi-normAzi) < fabs(azi)) Gam[(off+pp)*4+2] =  sq_alpha[pp]*(azi-normAzi);
 	    else if(fabs(azi+normAzi) < fabs(azi)) Gam[(off+pp)*4+2] =  sq_alpha[pp]*(azi+normAzi);
+	    */
+
+	    	
+	    // --- check azimuth --- //
+	    {
+	      constexpr const ind_t pp = 2;
+	      T const dazi = (m(yy,xx,pp) - m(yy,xx-1,pp));
+	      if     (dazi > PI2)  tmp[pp] = -sq_alpha[pp]*(normAzi-dazi);
+	      else if(dazi < -PI2) tmp[pp] = sq_alpha[pp]*(normAzi+dazi);
+	    }
+	    
+	    for(long pp=0; pp<npar; ++pp)
+	      Gam[(off+pp)*4+2] += tmp[pp]; 
 	  }
 
 
@@ -484,13 +527,17 @@ namespace spa{
 	  for(long pp=0; pp<npar; ++pp)
 	    Gam[(off+pp)*4+3] = sq_beta[pp] * m(tt,yy,xx,pp);
 
-	  
+	  /*
 	  // --- in the case of inclination, prefer vertical fields --- //
 
 	  T const quant = ((m(tt,yy,xx,1) <= phyc::PI/T(2)) ? T(0) : phyc::PI);
 	  Gam[(off+1)*4+3] -= sq_beta[1] * quant;
+	  */
 	  
 	} // ipix
+
+	delete [] tmp;
+	
       }// parallel
       
       delete [] sq_alpha;
